@@ -42,6 +42,7 @@ const menuItems = [
     submenu: [
       { title: 'Danh sách booking', href: '/sales/bookings', icon: FileText },
       { title: 'Quản lý hợp đồng', href: '/sales/contracts', icon: FileText },
+      { title: 'Quản lý khách hàng', href: '/sales/customers', icon: Users },
       { title: 'Chăm sóc khách hàng', href: '/sales/customer-care', icon: Users }
     ]
   },
@@ -61,6 +62,7 @@ const menuItems = [
     color: 'text-orange-500',
     submenu: [
       { title: 'Phân xe & lái xe', href: '/operations/vehicle-assignment', icon: Car },
+      { title: 'Hành trình đa điểm', href: '/operations/multi-stop-booking', icon: MapPin },
       { title: 'Giám sát GPS', href: '/operations/gps-monitor', icon: MapPin },
       { title: 'Quản lý sự cố', href: '/operations/incidents', icon: AlertTriangle },
       { title: 'Quản lý CTV', href: '/operations/ctv-manager', icon: UserCheck },
@@ -75,6 +77,8 @@ const menuItems = [
     submenu: [
       { title: 'Hồ sơ xe', href: '/transport/vehicles', icon: Car },
       { title: 'Hồ sơ lái xe', href: '/transport/drivers', icon: Users },
+      { title: 'Bảng giá theo Km', href: '/transport/pricing', icon: CreditCard },
+      { title: 'Giấy đi đường', href: '/transport/travel-documents', icon: FileText },
       { title: 'Lịch bảo dưỡng', href: '/transport/maintenance', icon: Settings },
       { title: 'Quản lý nhiên liệu', href: '/transport/fuel', icon: Fuel },
       { title: 'Quản lý đăng kiểm', href: '/transport/registration', icon: FileText },
@@ -89,6 +93,7 @@ const menuItems = [
     submenu: [
       { title: 'Công nợ khách hàng', href: '/accounting/debts', icon: CreditCard },
       { title: 'Quản lý hóa đơn', href: '/accounting/invoices', icon: FileText },
+      { title: 'Chi phí phát sinh', href: '/accounting/expenses', icon: Calculator },
       { title: 'Tính lương & chi phí', href: '/accounting/payroll', icon: Calculator },
       { title: 'Báo cáo tài chính', href: '/accounting/reports', icon: BarChart3 }
     ]

@@ -44,6 +44,11 @@ import KPIManagement from "./pages/kpi/KPIManagement";
 import DepartmentKPI from "./pages/kpi/DepartmentKPI";
 import IndividualKPI from "./pages/kpi/IndividualKPI";
 import KPIDashboard from "./pages/kpi/KPIDashboard";
+import CustomerManagement from "./pages/sales/CustomerManagement";
+import PricingPerKm from "./pages/transport/PricingPerKm";
+import ExpenseManagement from "./pages/accounting/ExpenseManagement";
+import TravelDocuments from "./pages/transport/TravelDocuments";
+import MultiStopBooking from "./pages/operations/MultiStopBooking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +74,7 @@ const App = () => (
             <Route path="sales/contracts" element={<ContractManager />} />
             <Route path="sales/contracts/create" element={<ContractCreate />} />
             <Route path="sales/customer-care" element={<CustomerCare />} />
+            <Route path="sales/customers" element={<CustomerManagement />} />
             <Route path="sales/service-manager" element={<ServiceManager />} />
             <Route path="sales/towel-service" element={<TowelService />} />
             <Route path="sales/water-service" element={<WaterService />} />
@@ -76,6 +82,7 @@ const App = () => (
             
             {/* Operations Routes */}
             <Route path="operations/vehicle-assignment" element={<VehicleAssignment />} />
+            <Route path="operations/multi-stop-booking" element={<MultiStopBooking />} />
             <Route path="operations/gps-monitor" element={<GPSMonitor />} />
             <Route path="operations/incidents" element={<IncidentManager />} />
             <Route path="operations/ctv-manager" element={<CTVManager />} />
@@ -85,6 +92,8 @@ const App = () => (
             {/* Transport Routes */}
             <Route path="transport/vehicles" element={<VehicleList />} />
             <Route path="transport/drivers" element={<DriverList />} />
+            <Route path="transport/pricing" element={<PricingPerKm />} />
+            <Route path="transport/travel-documents" element={<TravelDocuments />} />
             <Route path="transport/maintenance" element={<MaintenanceSchedule />} />
             <Route path="transport/fuel" element={<FuelManagement />} />
             <Route path="transport/registration" element={<VehicleRegistration />} />
@@ -94,6 +103,7 @@ const App = () => (
             {/* Accounting Routes */}
             <Route path="accounting/debts" element={<DebtManagement />} />
             <Route path="accounting/invoices" element={<InvoiceManager />} />
+            <Route path="accounting/expenses" element={<ExpenseManagement />} />
             <Route path="accounting/payroll" element={<PayrollManager />} />
             <Route path="accounting/reports" element={<FinancialReports />} />
             
