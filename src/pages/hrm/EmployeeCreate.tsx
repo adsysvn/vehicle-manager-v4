@@ -168,6 +168,43 @@ const EmployeeCreate = () => {
               />
             </div>
 
+            <div className="border-t pt-6 space-y-4">
+              <h3 className="font-semibold">Bằng cấp & Chứng chỉ</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="education">Trình độ học vấn</Label>
+                  <Select>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn trình độ" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="highschool">THPT</SelectItem>
+                      <SelectItem value="college">Cao đẳng</SelectItem>
+                      <SelectItem value="bachelor">Đại học</SelectItem>
+                      <SelectItem value="master">Thạc sĩ</SelectItem>
+                      <SelectItem value="doctor">Tiến sĩ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="major">Chuyên ngành</Label>
+                  <Input id="major" placeholder="Quản trị kinh doanh" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="certificates">Chứng chỉ nghề nghiệp</Label>
+                <Input id="certificates" placeholder="VD: Bằng lái B2, C, Chứng chỉ An toàn lao động..." />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="certFiles">Tải lên bằng cấp / chứng chỉ</Label>
+                <Input id="certFiles" type="file" multiple accept=".pdf,.jpg,.jpeg,.png" />
+                <p className="text-xs text-muted-foreground">Hỗ trợ PDF, JPG, PNG. Có thể chọn nhiều file.</p>
+              </div>
+            </div>
+
             <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => navigate('/hrm/employees')}>
                 Hủy

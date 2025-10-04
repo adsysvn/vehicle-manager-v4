@@ -19,7 +19,9 @@ import {
   UserCog,
   Shield,
   Droplet,
-  Package
+  Package,
+  Building,
+  Mail
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +79,7 @@ const menuItems = [
     submenu: [
       { title: 'Hồ sơ xe', href: '/transport/vehicles', icon: Car },
       { title: 'Hồ sơ lái xe', href: '/transport/drivers', icon: Users },
+      { title: 'Quản lý lái xe', href: '/transport/driver-management', icon: UserCog },
       { title: 'Bảng giá theo Km', href: '/transport/pricing', icon: CreditCard },
       { title: 'Giấy đi đường', href: '/transport/travel-documents', icon: FileText },
       { title: 'Lịch bảo dưỡng', href: '/transport/maintenance', icon: Settings },
@@ -94,6 +97,7 @@ const menuItems = [
       { title: 'Công nợ khách hàng', href: '/accounting/debts', icon: CreditCard },
       { title: 'Quản lý hóa đơn', href: '/accounting/invoices', icon: FileText },
       { title: 'Chi phí phát sinh', href: '/accounting/expenses', icon: Calculator },
+      { title: 'Đồng bộ HĐ Email', href: '/accounting/invoice-sync', icon: Mail },
       { title: 'Tính lương & chi phí', href: '/accounting/payroll', icon: Calculator },
       { title: 'Báo cáo tài chính', href: '/accounting/reports', icon: BarChart3 }
     ]
@@ -105,7 +109,8 @@ const menuItems = [
     submenu: [
       { title: 'Quản lý nhân viên', href: '/hrm/employees', icon: Users },
       { title: 'Chấm công', href: '/hrm/attendance', icon: FileText },
-      { title: 'Nghỉ phép', href: '/hrm/leave', icon: FileText }
+      { title: 'Nghỉ phép', href: '/hrm/leave', icon: FileText },
+      { title: 'Quản lý phòng ban', href: '/hrm/departments', icon: Building }
     ]
   },
   {

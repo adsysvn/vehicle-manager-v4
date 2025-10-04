@@ -84,18 +84,25 @@ const pendingTrips = [
     route: 'HCM → Hà Nội',
     startTime: '08:00',
     date: '2024-01-15',
-    vehicleType: 'Xe tải 5 tấn',
-    priority: 'high'
+    vehicleType: '7 chỗ',
+    priority: 'high',
+    isMultiStop: false
   },
   {
     id: 'T002',
     booking: 'BK002',
     customer: 'Công ty XYZ',
-    route: 'Đà Nẵng → HCM',
+    route: 'Đa điểm',
     startTime: '14:30',
     date: '2024-01-15',
-    vehicleType: 'Xe tải 10 tấn',
-    priority: 'medium'
+    vehicleType: '16 chỗ',
+    priority: 'medium',
+    isMultiStop: true,
+    stops: [
+      { id: 'S1', location: 'Hà Nội', time: '14:30', type: 'pickup' },
+      { id: 'S2', location: 'Hải Phòng', time: '17:00', type: 'waypoint' },
+      { id: 'S3', location: 'Quảng Ninh', time: '19:30', type: 'dropoff' }
+    ]
   }
 ];
 
@@ -111,6 +118,8 @@ export default function VehicleAssignment() {
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
+  const [filterVehicleType, setFilterVehicleType] = useState<string>('all');
+  const [multiStopAssignments, setMultiStopAssignments] = useState<{[key: string]: {vehicle: string, driver: string}}>({});
 
   return (
     <div className="space-y-6">
@@ -135,50 +144,96 @@ export default function VehicleAssignment() {
       </div>
 
       {/* Assignment Form */}
-      {selectedTrip && (
-        <Card className="border-primary/50">
-          <CardHeader>
-            <CardTitle className="text-primary">Đang phân công chuyến đi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Chuyến đi</label>
-                <div className="p-3 bg-muted rounded-lg">
-                  {pendingTrips.find(t => t.id === selectedTrip)?.route}
+      {selectedTrip && (() => {
+        const trip = pendingTrips.find(t => t.id === selectedTrip);
+        return (
+          <Card className="border-primary/50">
+            <CardHeader>
+              <CardTitle className="text-primary">
+                Đang phân công chuyến đi {trip?.isMultiStop && '(Hành trình đa điểm)'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {trip?.isMultiStop && trip.stops ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">Chọn xe và lái xe cho từng chặng</p>
+                  {trip.stops.map((stop, index) => (
+                    <div key={stop.id} className="p-4 border rounded-lg space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold">
+                          {index + 1}
+                        </div>
+                        <div>
+                          <p className="font-medium">{stop.location}</p>
+                          <p className="text-sm text-muted-foreground">{stop.time}</p>
+                        </div>
+                      </div>
+                      {index < trip.stops.length - 1 && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <Select onValueChange={(v) => setMultiStopAssignments({...multiStopAssignments, [`${stop.id}-vehicle`]: {vehicle: v, driver: multiStopAssignments[`${stop.id}-driver`]?.driver || ''}})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn xe" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {vehicles.filter(v => v.status === 'available').map(v => (
+                                <SelectItem key={v.id} value={v.id}>{v.license} - {v.type}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select onValueChange={(d) => setMultiStopAssignments({...multiStopAssignments, [`${stop.id}-driver`]: {vehicle: multiStopAssignments[`${stop.id}-vehicle`]?.vehicle || '', driver: d}})}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn lái xe" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {drivers.filter(d => d.status === 'available').map(d => (
+                                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Xe được chọn</label>
-                <div className="p-3 bg-muted rounded-lg">
-                  {selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.license : 'Chưa chọn'}
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Chuyến đi</label>
+                    <div className="p-3 bg-muted rounded-lg">
+                      {trip?.route}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Xe được chọn</label>
+                    <div className="p-3 bg-muted rounded-lg">
+                      {selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.license : 'Chưa chọn'}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Lái xe được chọn</label>
+                    <div className="p-3 bg-muted rounded-lg">
+                      {selectedDriver ? drivers.find(d => d.id === selectedDriver)?.name : 'Chưa chọn'}
+                    </div>
+                  </div>
                 </div>
+              )}
+              <div className="flex justify-end space-x-2 mt-4">
+                <Button variant="outline" onClick={() => {
+                  setSelectedTrip(null);
+                  setSelectedVehicle(null);
+                  setSelectedDriver(null);
+                  setMultiStopAssignments({});
+                }}>
+                  Hủy
+                </Button>
+                <Button className="bg-success">
+                  Xác nhận phân công
+                </Button>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Lái xe được chọn</label>
-                <div className="p-3 bg-muted rounded-lg">
-                  {selectedDriver ? drivers.find(d => d.id === selectedDriver)?.name : 'Chưa chọn'}
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end space-x-2 mt-4">
-              <Button variant="outline" onClick={() => {
-                setSelectedTrip(null);
-                setSelectedVehicle(null);
-                setSelectedDriver(null);
-              }}>
-                Hủy
-              </Button>
-              <Button 
-                className="bg-success"
-                disabled={!selectedVehicle || !selectedDriver}
-              >
-                Xác nhận phân công
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Pending Trips */}
@@ -188,10 +243,24 @@ export default function VehicleAssignment() {
               <Clock className="w-5 h-5 text-warning" />
               <span>Chuyến đi chờ phân công</span>
             </CardTitle>
+            <div className="mt-3">
+              <Select value={filterVehicleType} onValueChange={setFilterVehicleType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Lọc theo loại xe" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tất cả loại xe</SelectItem>
+                  <SelectItem value="4seats">4 chỗ</SelectItem>
+                  <SelectItem value="7seats">7 chỗ</SelectItem>
+                  <SelectItem value="16seats">16 chỗ</SelectItem>
+                  <SelectItem value="29seats">29 chỗ</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {pendingTrips.map((trip) => (
+              {pendingTrips.filter(t => filterVehicleType === 'all' || t.vehicleType.includes(filterVehicleType.replace('seats', ' chỗ'))).map((trip) => (
                 <div 
                   key={trip.id}
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
@@ -219,7 +288,12 @@ export default function VehicleAssignment() {
                     <Clock className="w-4 h-4" />
                     <span>{trip.date} - {trip.startTime}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">{trip.vehicleType}</p>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-sm text-muted-foreground">{trip.vehicleType}</p>
+                    {trip.isMultiStop && (
+                      <Badge variant="secondary">Đa điểm ({trip.stops?.length || 0})</Badge>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

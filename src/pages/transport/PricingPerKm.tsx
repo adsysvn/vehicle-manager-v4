@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 interface VehiclePricing {
   id: string;
   vehicleType: string;
+  companyId: string;
+  companyName: string;
   basePrice: number;
   pricePerKm: number;
   minKm: number;
@@ -26,6 +28,8 @@ const mockPricing: VehiclePricing[] = [
   {
     id: 'PRICE001',
     vehicleType: '4 chỗ',
+    companyId: 'COMP001',
+    companyName: 'Công ty TNHH ABC',
     basePrice: 300000,
     pricePerKm: 8000,
     minKm: 20,
@@ -38,6 +42,8 @@ const mockPricing: VehiclePricing[] = [
   {
     id: 'PRICE002',
     vehicleType: '7 chỗ',
+    companyId: 'COMP001',
+    companyName: 'Công ty TNHH ABC',
     basePrice: 400000,
     pricePerKm: 10000,
     minKm: 20,
@@ -49,23 +55,27 @@ const mockPricing: VehiclePricing[] = [
   },
   {
     id: 'PRICE003',
-    vehicleType: '16 chỗ',
-    basePrice: 600000,
-    pricePerKm: 12000,
-    minKm: 30,
-    pricePerHour: 250000,
-    nightSurcharge: 20,
-    holidaySurcharge: 30,
+    vehicleType: '4 chỗ',
+    companyId: 'COMP002',
+    companyName: 'Công ty CP XYZ',
+    basePrice: 320000,
+    pricePerKm: 8500,
+    minKm: 20,
+    pricePerHour: 160000,
+    nightSurcharge: 25,
+    holidaySurcharge: 35,
     effectiveDate: '2024-01-01',
     status: 'active'
   },
   {
     id: 'PRICE004',
-    vehicleType: '29 chỗ',
-    basePrice: 900000,
-    pricePerKm: 15000,
+    vehicleType: '16 chỗ',
+    companyId: 'COMP001',
+    companyName: 'Công ty TNHH ABC',
+    basePrice: 600000,
+    pricePerKm: 12000,
     minKm: 30,
-    pricePerHour: 350000,
+    pricePerHour: 250000,
     nightSurcharge: 20,
     holidaySurcharge: 30,
     effectiveDate: '2024-01-01',
@@ -76,6 +86,7 @@ const mockPricing: VehiclePricing[] = [
 export default function PricingPerKm() {
   const [pricing, setPricing] = useState<VehiclePricing[]>(mockPricing);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [filterCompany, setFilterCompany] = useState<string>('all');
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -109,6 +120,19 @@ export default function PricingPerKm() {
               <DialogTitle>Thêm bảng giá mới</DialogTitle>
             </DialogHeader>
             <form className="space-y-4">
+              <div className="space-y-2">
+                <Label>Công ty</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn công ty" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="COMP001">Công ty TNHH ABC</SelectItem>
+                    <SelectItem value="COMP002">Công ty CP XYZ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>Loại xe</Label>
                 <Select>
@@ -166,8 +190,21 @@ export default function PricingPerKm() {
         </Dialog>
       </div>
 
+      <div className="mb-4">
+        <Select value={filterCompany} onValueChange={setFilterCompany}>
+          <SelectTrigger className="w-64">
+            <SelectValue placeholder="Lọc theo công ty" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả công ty</SelectItem>
+            <SelectItem value="COMP001">Công ty TNHH ABC</SelectItem>
+            <SelectItem value="COMP002">Công ty CP XYZ</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {pricing.map((price) => (
+        {pricing.filter(p => filterCompany === 'all' || p.companyId === filterCompany).map((price) => (
           <Card key={price.id}>
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center justify-between">
@@ -176,6 +213,7 @@ export default function PricingPerKm() {
                   {price.status === 'active' ? 'Đang áp dụng' : 'Không áp dụng'}
                 </Badge>
               </CardTitle>
+              <p className="text-xs text-muted-foreground mt-1">{price.companyName}</p>
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
@@ -214,6 +252,7 @@ export default function PricingPerKm() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Công ty</TableHead>
                   <TableHead>Loại xe</TableHead>
                   <TableHead>Khởi điểm</TableHead>
                   <TableHead>Giá/Km</TableHead>
@@ -223,8 +262,9 @@ export default function PricingPerKm() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pricing.map((price) => (
+                {pricing.filter(p => filterCompany === 'all' || p.companyId === filterCompany).map((price) => (
                   <TableRow key={price.id}>
+                    <TableCell className="text-sm">{price.companyName}</TableCell>
                     <TableCell className="font-medium">{price.vehicleType}</TableCell>
                     <TableCell>{formatCurrency(price.basePrice)}</TableCell>
                     <TableCell>{formatCurrency(price.pricePerKm)}</TableCell>

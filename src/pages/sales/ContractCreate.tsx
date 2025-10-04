@@ -13,6 +13,8 @@ const ContractCreate = () => {
   const [formData, setFormData] = useState({
     contractNumber: '',
     customerName: '',
+    taxCode: '',
+    address: '',
     contactPerson: '',
     phone: '',
     email: '',
@@ -84,7 +86,7 @@ const ContractCreate = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="customerName">Tên khách hàng *</Label>
+                <Label htmlFor="customerName">Tên công ty / Khách hàng *</Label>
                 <Input
                   id="customerName"
                   placeholder="Công ty TNHH ABC"
@@ -94,7 +96,26 @@ const ContractCreate = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactPerson">Người liên hệ</Label>
+                <Label htmlFor="taxCode">Mã số thuế</Label>
+                <Input
+                  id="taxCode"
+                  placeholder="0123456789"
+                  onChange={(e) => setFormData({ ...formData, taxCode: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Địa chỉ công ty</Label>
+                <Input
+                  id="address"
+                  placeholder="123 Đường ABC, Quận 1, TP.HCM"
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contactPerson">Người đại diện</Label>
                 <Input
                   id="contactPerson"
                   placeholder="Nguyễn Văn A"

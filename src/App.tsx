@@ -49,6 +49,10 @@ import PricingPerKm from "./pages/transport/PricingPerKm";
 import ExpenseManagement from "./pages/accounting/ExpenseManagement";
 import TravelDocuments from "./pages/transport/TravelDocuments";
 import MultiStopBooking from "./pages/operations/MultiStopBooking";
+import BookingCreate from "./pages/sales/BookingCreate";
+import DriverManagement from "./pages/transport/DriverManagement";
+import InvoiceEmailSync from "./pages/accounting/InvoiceEmailSync";
+import HrmDepartmentManagement from "./pages/hrm/DepartmentManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +75,7 @@ const App = () => (
           <Route element={<Layout />}>
             {/* Sales Routes */}
             <Route path="sales/bookings" element={<BookingList />} />
+            <Route path="sales/bookings/create" element={<BookingCreate />} />
             <Route path="sales/contracts" element={<ContractManager />} />
             <Route path="sales/contracts/create" element={<ContractCreate />} />
             <Route path="sales/customer-care" element={<CustomerCare />} />
@@ -92,6 +97,7 @@ const App = () => (
             {/* Transport Routes */}
             <Route path="transport/vehicles" element={<VehicleList />} />
             <Route path="transport/drivers" element={<DriverList />} />
+            <Route path="transport/driver-management" element={<DriverManagement />} />
             <Route path="transport/pricing" element={<PricingPerKm />} />
             <Route path="transport/travel-documents" element={<TravelDocuments />} />
             <Route path="transport/maintenance" element={<MaintenanceSchedule />} />
@@ -104,6 +110,7 @@ const App = () => (
             <Route path="accounting/debts" element={<DebtManagement />} />
             <Route path="accounting/invoices" element={<InvoiceManager />} />
             <Route path="accounting/expenses" element={<ExpenseManagement />} />
+            <Route path="accounting/invoice-sync" element={<InvoiceEmailSync />} />
             <Route path="accounting/payroll" element={<PayrollManager />} />
             <Route path="accounting/reports" element={<FinancialReports />} />
             
@@ -112,6 +119,7 @@ const App = () => (
             <Route path="hrm/employees/create" element={<EmployeeCreate />} />
             <Route path="hrm/attendance" element={<Attendance />} />
             <Route path="hrm/leave" element={<LeaveManagement />} />
+            <Route path="hrm/departments" element={<HrmDepartmentManagement />} />
             
             {/* Security Routes */}
             <Route path="security/roles" element={<RoleManagement />} />
