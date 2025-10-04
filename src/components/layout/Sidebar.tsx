@@ -21,7 +21,8 @@ import {
   Droplet,
   Package,
   Building,
-  Mail
+  Mail,
+  Bell
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
