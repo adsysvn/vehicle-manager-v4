@@ -81,28 +81,44 @@ const pendingTrips = [
     id: 'T001',
     booking: 'BK001',
     customer: 'Công ty ABC',
+    customerType: 'corporate',
+    contactPerson: 'Nguyễn Văn A',
+    phone: '0901234567',
+    email: 'contact@abc.com',
     route: 'HCM → Hà Nội',
+    routePoints: [
+      { pickup: 'HCM', dropoff: 'Hà Nội', time: '08:00', date: '2024-01-15' }
+    ],
     startTime: '08:00',
     date: '2024-01-15',
-    vehicleType: '7 chỗ',
+    vehicleType: '45 chỗ',
+    passengers: 40,
     priority: 'high',
-    isMultiStop: false
+    notes: 'Khách VIP, cần xe đời mới',
+    assignedVehicles: {} as Record<number, string>,
+    assignedDrivers: {} as Record<number, string>
   },
   {
     id: 'T002',
     booking: 'BK002',
     customer: 'Công ty XYZ',
-    route: 'Đa điểm',
+    customerType: 'corporate',
+    contactPerson: 'Trần Thị B',
+    phone: '0987654321',
+    email: 'contact@xyz.com',
+    route: 'Đà Nẵng → Quảng Nam → HCM',
+    routePoints: [
+      { pickup: 'Đà Nẵng', dropoff: 'Quảng Nam', time: '14:30', date: '2024-01-15' },
+      { pickup: 'Quảng Nam', dropoff: 'HCM', time: '16:00', date: '2024-01-15' }
+    ],
     startTime: '14:30',
     date: '2024-01-15',
-    vehicleType: '16 chỗ',
+    vehicleType: '29 chỗ',
+    passengers: 25,
     priority: 'medium',
-    isMultiStop: true,
-    stops: [
-      { id: 'S1', location: 'Hà Nội', time: '14:30', type: 'pickup' },
-      { id: 'S2', location: 'Hải Phòng', time: '17:00', type: 'waypoint' },
-      { id: 'S3', location: 'Quảng Ninh', time: '19:30', type: 'dropoff' }
-    ]
+    notes: 'Chuyến đi theo lịch trình cố định hàng tuần',
+    assignedVehicles: {} as Record<number, string>,
+    assignedDrivers: {} as Record<number, string>
   }
 ];
 
@@ -118,8 +134,32 @@ export default function VehicleAssignment() {
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
-  const [filterVehicleType, setFilterVehicleType] = useState<string>('all');
-  const [multiStopAssignments, setMultiStopAssignments] = useState<{[key: string]: {vehicle: string, driver: string}}>({});
+  const [vehicleFilter, setVehicleFilter] = useState<string>('all');
+  const [pointVehicles, setPointVehicles] = useState<Record<number, string>>({});
+  const [pointDrivers, setPointDrivers] = useState<Record<number, string>>({});
+
+  const currentTrip = pendingTrips.find(t => t.id === selectedTrip);
+  const isMultiPoint = currentTrip && currentTrip.routePoints.length > 2;
+
+  const filteredVehicles = vehicles.filter(v => {
+    if (v.status !== 'available') return false;
+    if (vehicleFilter === 'all') return true;
+    return v.type === vehicleFilter;
+  });
+
+  const handlePointVehicleChange = (pointIndex: number, vehicleId: string) => {
+    setPointVehicles(prev => ({
+      ...prev,
+      [pointIndex]: vehicleId
+    }));
+  };
+
+  const handlePointDriverChange = (pointIndex: number, driverId: string) => {
+    setPointDrivers(prev => ({
+      ...prev,
+      [pointIndex]: driverId
+    }));
+  };
 
   return (
     <div className="space-y-6">
@@ -144,67 +184,180 @@ export default function VehicleAssignment() {
       </div>
 
       {/* Assignment Form */}
-      {selectedTrip && (() => {
-        const trip = pendingTrips.find(t => t.id === selectedTrip);
-        return (
-          <Card className="border-primary/50">
-            <CardHeader>
-              <CardTitle className="text-primary">
-                Đang phân công chuyến đi {trip?.isMultiStop && '(Hành trình đa điểm)'}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {trip?.isMultiStop && trip.stops ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Chọn xe và lái xe cho từng chặng</p>
-                  {trip.stops.map((stop, index) => (
-                    <div key={stop.id} className="p-4 border rounded-lg space-y-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-bold">
-                          {index + 1}
+      {selectedTrip && (
+        <Card className="border-primary/50">
+          <CardHeader>
+            <CardTitle className="text-primary">Đang phân công chuyến đi</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Booking Information */}
+              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                <h3 className="font-semibold text-lg">Thông tin booking</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground">Mã booking</label>
+                    <p className="font-medium">{currentTrip?.booking}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Khách hàng</label>
+                    <p className="font-medium">{currentTrip?.customer}</p>
+                    <Badge variant="outline" className="mt-1">
+                      {currentTrip?.customerType === 'corporate' ? 'Doanh nghiệp' : 'Khách lẻ'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Người liên hệ</label>
+                    <p className="font-medium">{currentTrip?.contactPerson}</p>
+                    <p className="text-sm text-muted-foreground">{currentTrip?.phone}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Email</label>
+                    <p className="font-medium">{currentTrip?.email}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Dòng xe yêu cầu</label>
+                    <p className="font-medium">{currentTrip?.vehicleType}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Số hành khách</label>
+                    <p className="font-medium">{currentTrip?.passengers} người</p>
+                  </div>
+                  {currentTrip?.notes && (
+                    <div className="col-span-2">
+                      <label className="text-xs text-muted-foreground">Ghi chú</label>
+                      <p className="text-sm">{currentTrip.notes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {isMultiPoint ? (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Hành trình đa điểm - Phân xe & lái xe cho từng chặng</label>
+                    <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Lọc theo dòng xe" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tất cả xe</SelectItem>
+                        <SelectItem value="7 chỗ">7 chỗ</SelectItem>
+                        <SelectItem value="16 chỗ">16 chỗ</SelectItem>
+                        <SelectItem value="29 chỗ">29 chỗ</SelectItem>
+                        <SelectItem value="45 chỗ">45 chỗ</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-3">
+                    {currentTrip?.routePoints.map((point, index) => (
+                      <div key={index} className="p-4 bg-muted/50 rounded-lg space-y-3 border border-border">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="outline" className="text-sm">Chặng {index + 1}</Badge>
                         </div>
-                        <div>
-                          <p className="font-medium">{stop.location}</p>
-                          <p className="text-sm text-muted-foreground">{stop.time}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              <MapPin className="w-4 h-4 text-green-600" />
+                              <div>
+                                <span className="font-medium">Điểm đón: </span>
+                                <span>{point.pickup}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <MapPin className="w-4 h-4 text-red-600" />
+                              <div>
+                                <span className="font-medium">Điểm trả: </span>
+                                <span>{point.dropoff}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Clock className="w-4 h-4 text-primary" />
+                              <div>
+                                <span className="font-medium">Ngày: </span>
+                                <span>{point.date}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm">
+                              <Clock className="w-4 h-4 text-primary" />
+                              <div>
+                                <span className="font-medium">Giờ: </span>
+                                <span>{point.time}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                              <Car className="w-4 h-4" />
+                              Chọn xe
+                            </label>
+                            <Select 
+                              value={pointVehicles[index] || ''} 
+                              onValueChange={(value) => handlePointVehicleChange(index, value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn xe cho chặng này" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {filteredVehicles.map((vehicle) => (
+                                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                                    {vehicle.license} - {vehicle.type}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                              <User className="w-4 h-4" />
+                              Chọn lái xe
+                            </label>
+                            <Select 
+                              value={pointDrivers[index] || ''} 
+                              onValueChange={(value) => handlePointDriverChange(index, value)}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Chọn lái xe cho chặng này" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {drivers.filter(d => d.status === 'available').map((driver) => (
+                                  <SelectItem key={driver.id} value={driver.id}>
+                                    {driver.name} - {driver.license}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
-                      {index < trip.stops.length - 1 && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <Select onValueChange={(v) => setMultiStopAssignments({...multiStopAssignments, [`${stop.id}-vehicle`]: {vehicle: v, driver: multiStopAssignments[`${stop.id}-driver`]?.driver || ''}})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Chọn xe" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {vehicles.filter(v => v.status === 'available').map(v => (
-                                <SelectItem key={v.id} value={v.id}>{v.license} - {v.type}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Select onValueChange={(d) => setMultiStopAssignments({...multiStopAssignments, [`${stop.id}-driver`]: {vehicle: multiStopAssignments[`${stop.id}-vehicle`]?.vehicle || '', driver: d}})}>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Chọn lái xe" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {drivers.filter(d => d.status === 'available').map(d => (
-                                <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    💡 Có thể chọn xe và lái xe khác nhau cho mỗi chặng hoặc giữ nguyên cho cả hành trình
+                  </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Chuyến đi</label>
-                    <div className="p-3 bg-muted rounded-lg">
-                      {trip?.route}
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium">Xe được chọn</label>
+                      <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue placeholder="Lọc theo dòng xe" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Tất cả xe</SelectItem>
+                          <SelectItem value="7 chỗ">7 chỗ</SelectItem>
+                          <SelectItem value="16 chỗ">16 chỗ</SelectItem>
+                          <SelectItem value="29 chỗ">29 chỗ</SelectItem>
+                          <SelectItem value="45 chỗ">45 chỗ</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Xe được chọn</label>
                     <div className="p-3 bg-muted rounded-lg">
                       {selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.license : 'Chưa chọn'}
                     </div>
@@ -217,23 +370,32 @@ export default function VehicleAssignment() {
                   </div>
                 </div>
               )}
-              <div className="flex justify-end space-x-2 mt-4">
-                <Button variant="outline" onClick={() => {
-                  setSelectedTrip(null);
-                  setSelectedVehicle(null);
-                  setSelectedDriver(null);
-                  setMultiStopAssignments({});
-                }}>
-                  Hủy
-                </Button>
-                <Button className="bg-success">
-                  Xác nhận phân công
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })()}
+            </div>
+            <div className="flex justify-end space-x-2 mt-4">
+              <Button variant="outline" onClick={() => {
+                setSelectedTrip(null);
+                setSelectedVehicle(null);
+                setSelectedDriver(null);
+                setPointVehicles({});
+                setPointDrivers({});
+                setVehicleFilter('all');
+              }}>
+                Hủy
+              </Button>
+              <Button 
+                className="bg-success"
+                disabled={
+                  isMultiPoint 
+                    ? Object.keys(pointVehicles).length === 0 || Object.keys(pointDrivers).length === 0
+                    : !selectedVehicle || !selectedDriver
+                }
+              >
+                Xác nhận phân công
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Pending Trips */}
@@ -243,24 +405,10 @@ export default function VehicleAssignment() {
               <Clock className="w-5 h-5 text-warning" />
               <span>Chuyến đi chờ phân công</span>
             </CardTitle>
-            <div className="mt-3">
-              <Select value={filterVehicleType} onValueChange={setFilterVehicleType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Lọc theo loại xe" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tất cả loại xe</SelectItem>
-                  <SelectItem value="4seats">4 chỗ</SelectItem>
-                  <SelectItem value="7seats">7 chỗ</SelectItem>
-                  <SelectItem value="16seats">16 chỗ</SelectItem>
-                  <SelectItem value="29seats">29 chỗ</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {pendingTrips.filter(t => filterVehicleType === 'all' || t.vehicleType.includes(filterVehicleType.replace('seats', ' chỗ'))).map((trip) => (
+              {pendingTrips.map((trip) => (
                 <div 
                   key={trip.id}
                   className={`p-3 border rounded-lg cursor-pointer transition-colors ${
@@ -284,16 +432,26 @@ export default function VehicleAssignment() {
                     <MapPin className="w-4 h-4 text-primary" />
                     <span>{trip.route}</span>
                   </div>
+                  {trip.routePoints.length > 1 && (
+                    <div className="mt-2 space-y-1">
+                      <Badge variant="outline" className="text-xs">
+                        Hành trình {trip.routePoints.length} chặng
+                      </Badge>
+                      <div className="text-xs text-muted-foreground space-y-1">
+                        {trip.routePoints.map((point, idx) => (
+                          <div key={idx} className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            <span>{point.pickup} → {point.dropoff} ({point.time})</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center space-x-2 text-sm text-muted-foreground mt-1">
                     <Clock className="w-4 h-4" />
                     <span>{trip.date} - {trip.startTime}</span>
                   </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <p className="text-sm text-muted-foreground">{trip.vehicleType}</p>
-                    {trip.isMultiStop && (
-                      <Badge variant="secondary">Đa điểm ({trip.stops?.length || 0})</Badge>
-                    )}
-                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">Dòng xe: {trip.vehicleType}</p>
                 </div>
               ))}
             </div>
