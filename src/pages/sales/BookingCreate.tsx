@@ -336,7 +336,33 @@ export default function BookingCreate() {
             ))}
           </CardContent>
         </Card>
+    
+   {/* Service Selection */}
+              <div className="space-y-3">
+                <Label>Dịch vụ đi kèm</Label>
+                <div className="space-y-2">
+                  {availableServices.map((service) => (
+                    <div key={service.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
+                      <Checkbox
+                        id={service.id}
+                        checked={selectedServices.includes(service.id)}
+                        onCheckedChange={() => toggleService(service.id)}
+                      />
+                      <label
+                        htmlFor={service.id}
+                        className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {service.name}
+                      </label>
+                      <span className="text-sm text-muted-foreground">
+                        {formatCurrency(service.price)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
+        {/*End service selection */}
         {/* Additional Notes */}
         <Card>
           <CardHeader>
