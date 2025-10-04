@@ -337,55 +337,7 @@ export default function BookingCreate() {
           </CardContent>
         </Card>
     
-   /* {/* Services */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PackageCheck className="w-5 h-5" />
-              Dịch vụ đi kèm
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {availableServices.map((service) => (
-                <div key={service.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
-                  <Checkbox
-                    id={service.id}
-                    checked={selectedServices.includes(service.id)}
-                    onCheckedChange={() => toggleService(service.id)}
-                  />
-                  <div className="flex-1">
-                    <label
-                      htmlFor={service.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {service.name}
-                    </label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {service.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        {/* Additional Notes */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Ghi chú bổ sung</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Textarea
-              placeholder="Nhập các ghi chú, yêu cầu đặc biệt..."
-              rows={4}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </CardContent>
-        </Card> */
-
-        {/* Actions */}
+         {/* Actions */}
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline" onClick={() => navigate('/sales/bookings')}>
             Hủy
