@@ -82,7 +82,7 @@ const menuItems = [
     color: 'text-purple-500',
     submenu: [
       { title: 'Hồ sơ xe', href: '/transport/vehicles', icon: Car },
-      { title: 'Hồ sơ lái xe', href: '/transport/drivers', icon: Users },
+      // { title: 'Hồ sơ lái xe', href: '/transport/drivers', icon: Users },
       { title: 'Quản lý lái xe', href: '/transport/driver-management', icon: UserCog },
       { title: 'Bảng giá theo Km', href: '/transport/pricing', icon: CreditCard },
       { title: 'Giấy đi đường', href: '/transport/travel-documents', icon: FileText },
