@@ -45,8 +45,9 @@ const menuItems = [
     submenu: [
       { title: 'Danh sách booking', href: '/sales/bookings', icon: FileText },
       { title: 'Quản lý hợp đồng', href: '/sales/contracts', icon: FileText },
-      { title: 'Quản lý khách hàng', href: '/sales/customers', icon: Users },
+      { title: 'Bảng giá theo Km', href: '/transport/pricing', icon: CreditCard },
       { title: 'Chăm sóc khách hàng', href: '/sales/customer-care', icon: Users },
+      { title: 'Quản lý khách hàng', href: '/sales/customers', icon: Users },
       { title: 'Báo cáo KD', href: '/sales/reports', icon: BarChart3 }
     ]
   },
@@ -84,7 +85,7 @@ const menuItems = [
       { title: 'Hồ sơ xe', href: '/transport/vehicles', icon: Car },
       // { title: 'Hồ sơ lái xe', href: '/transport/drivers', icon: Users },
       { title: 'Quản lý lái xe', href: '/transport/driver-management', icon: UserCog },
-      { title: 'Bảng giá theo Km', href: '/transport/pricing', icon: CreditCard },
+      
       { title: 'Giấy đi đường', href: '/transport/travel-documents', icon: FileText },
       { title: 'Lịch bảo dưỡng', href: '/transport/maintenance', icon: Settings },
       { title: 'Quản lý nhiên liệu', href: '/transport/fuel', icon: Fuel },
