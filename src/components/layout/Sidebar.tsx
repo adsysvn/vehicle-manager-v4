@@ -119,16 +119,6 @@ const menuItems = [
     ]
   },
   {
-    title: 'Phân quyền',
-    icon: Shield,
-    color: 'text-indigo-500',
-    submenu: [
-      { title: 'Vai trò người dùng', href: '/security/roles', icon: Shield },
-      { title: 'Phòng ban', href: '/security/departments', icon: Users },
-      { title: 'Quyền truy cập', href: '/security/permissions', icon: Settings }
-    ]
-  },
-  {
     title: 'BSC/KPI',
     icon: BarChart3,
     color: 'text-amber-500',
@@ -140,7 +130,18 @@ const menuItems = [
       { title: 'KPI Cá nhân', href: '/kpi/individual', icon: UserCog },
       { title: 'Dashboard', href: '/kpi/dashboard', icon: BarChart3 }
     ]
+  },
+  {
+    title: 'Phân quyền',
+    icon: Shield,
+    color: 'text-indigo-500',
+    submenu: [
+      { title: 'Vai trò người dùng', href: '/security/roles', icon: Shield },
+      { title: 'Phòng ban', href: '/security/departments', icon: Users },
+      { title: 'Quyền truy cập', href: '/security/permissions', icon: Settings }
+    ]
   }
+  
 ];
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
