@@ -115,7 +115,12 @@ const menuItems = [
       { title: 'Quản lý nhân viên', href: '/hrm/employees', icon: Users },
       { title: 'Chấm công', href: '/hrm/attendance', icon: FileText },
       { title: 'Nghỉ phép', href: '/hrm/leave', icon: FileText },
-      { title: 'Quản lý phòng ban', href: '/hrm/departments', icon: Building }
+      { title: 'Quản lý phòng ban', href: '/hrm/departments', icon: Building },
+      { title: 'Giao việc', href: '/hrm/task-assignment', icon: FileText },
+      { title: 'Trình ký', href: '/hrm/document-approval', icon: FileText },
+      { title: 'Bằng cấp', href: '/hrm/degrees', icon: FileText },
+      { title: 'Hợp đồng', href: '/hrm/contracts', icon: FileText },
+      { title: 'Chứng chỉ', href: '/hrm/certificates', icon: FileText }
     ]
   },
   {
