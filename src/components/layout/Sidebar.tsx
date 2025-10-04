@@ -45,7 +45,8 @@ const menuItems = [
       { title: 'Danh sách booking', href: '/sales/bookings', icon: FileText },
       { title: 'Quản lý hợp đồng', href: '/sales/contracts', icon: FileText },
       { title: 'Quản lý khách hàng', href: '/sales/customers', icon: Users },
-      { title: 'Chăm sóc khách hàng', href: '/sales/customer-care', icon: Users }
+      { title: 'Chăm sóc khách hàng', href: '/sales/customer-care', icon: Users },
+      { title: 'Báo cáo KD', href: '/sales/reports', icon: BarChart3 }
     ]
   },
   {
@@ -69,7 +70,9 @@ const menuItems = [
       { title: 'Quản lý sự cố', href: '/operations/incidents', icon: AlertTriangle },
       { title: 'Quản lý CTV', href: '/operations/ctv-manager', icon: UserCheck },
       { title: 'Đặt xe CTV', href: '/operations/ctv-booking', icon: Car },
-      { title: 'Theo dõi CTV', href: '/operations/ctv-tracking', icon: MapPin }
+      { title: 'Theo dõi CTV', href: '/operations/ctv-tracking', icon: MapPin },
+      { title: 'Hệ thống cảnh báo', href: '/operations/alerts', icon: Bell },
+      { title: 'Báo cáo ĐH', href: '/operations/reports', icon: BarChart3 }
     ]
   },
   {
@@ -87,6 +90,7 @@ const menuItems = [
       { title: 'Quản lý đăng kiểm', href: '/transport/registration', icon: FileText },
       { title: 'Quản lý bảo hiểm', href: '/transport/insurance', icon: Shield },
       { title: 'Dịch vụ khác', href: '/transport/other-services', icon: Package }
+      { title: 'Báo cáo VT', href: '/transport/reports', icon: BarChart3 }
     ]
   },
   {
