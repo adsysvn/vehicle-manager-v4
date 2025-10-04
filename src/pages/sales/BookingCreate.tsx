@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Plus, Trash2, MapPin, Calendar, Car } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, MapPin, Calendar, Car, PackageCheck } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 
 interface RoutePoint {
@@ -42,6 +43,26 @@ export default function BookingCreate() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([
     { id: '1', type: '', notes: '' }
   ]);
+
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
+  const availableServices = [
+    { id: 'tour-guide', name: 'Hướng dẫn viên', description: 'Dịch vụ hướng dẫn viên du lịch' },
+    { id: 'meals', name: 'Ăn uống', description: 'Dịch vụ bữa ăn cho khách' },
+    { id: 'water', name: 'Nước uống', description: 'Cung cấp nước uống' },
+    { id: 'towels', name: 'Khăn lạnh', description: 'Dịch vụ khăn lạnh' },
+    { id: 'insurance', name: 'Bảo hiểm', description: 'Bảo hiểm du lịch' },
+    { id: 'wifi', name: 'Wifi', description: 'Wifi trên xe' },
+    { id: 'other', name: 'Dịch vụ khác', description: 'Các dịch vụ bổ sung khác' }
+  ];
+
+  const toggleService = (serviceId: string) => {
+    setSelectedServices(prev =>
+      prev.includes(serviceId)
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
+  };
 
   const addRoutePoint = () => {
     const newId = String(routePoints.length + 1);
@@ -213,7 +234,7 @@ export default function BookingCreate() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Hành trình
+                Hành trình đa điểm
               </CardTitle>
               <Button type="button" variant="outline" size="sm" onClick={addRoutePoint}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -336,8 +357,57 @@ export default function BookingCreate() {
             ))}
           </CardContent>
         </Card>
-    
-         {/* Actions */}
+
+        {/* Services */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PackageCheck className="w-5 h-5" />
+              Dịch vụ đi kèm
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableServices.map((service) => (
+                <div key={service.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                  <Checkbox
+                    id={service.id}
+                    checked={selectedServices.includes(service.id)}
+                    onCheckedChange={() => toggleService(service.id)}
+                  />
+                  <div className="flex-1">
+                    <label
+                      htmlFor={service.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {service.name}
+                    </label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {service.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Additional Notes */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Ghi chú bổ sung</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Textarea
+              placeholder="Nhập các ghi chú, yêu cầu đặc biệt..."
+              rows={4}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Actions */}
         <div className="flex justify-end gap-4">
           <Button type="button" variant="outline" onClick={() => navigate('/sales/bookings')}>
             Hủy
