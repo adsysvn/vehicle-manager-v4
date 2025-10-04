@@ -89,7 +89,7 @@ const menuItems = [
       { title: 'Quản lý nhiên liệu', href: '/transport/fuel', icon: Fuel },
       { title: 'Quản lý đăng kiểm', href: '/transport/registration', icon: FileText },
       { title: 'Quản lý bảo hiểm', href: '/transport/insurance', icon: Shield },
-      { title: 'Dịch vụ khác', href: '/transport/other-services', icon: Package }
+      { title: 'Dịch vụ khác', href: '/transport/other-services', icon: Package },
       { title: 'Báo cáo VT', href: '/transport/reports', icon: BarChart3 }
     ]
   },
