@@ -88,6 +88,7 @@ const App = () => (
             <Route path="sales/towel-service" element={<TowelService />} />
             <Route path="sales/water-service" element={<WaterService />} />
             <Route path="sales/services" element={<OtherServices />} />
+            <Route path="sales/reports" element={<SalesReports />} />
             
             {/* Operations Routes */}
             <Route path="operations/vehicle-assignment" element={<VehicleAssignment />} />
@@ -97,6 +98,7 @@ const App = () => (
             <Route path="operations/ctv-manager" element={<CTVManager />} />
             <Route path="operations/ctv-booking" element={<CTVBooking />} />
             <Route path="operations/ctv-tracking" element={<CTVTracking />} />
+            <Route path="operations/reports" element={<OperationsReports />} />
             
             {/* Transport Routes */}
             <Route path="transport/vehicles" element={<VehicleList />} />
