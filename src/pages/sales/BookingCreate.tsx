@@ -337,7 +337,7 @@ export default function BookingCreate() {
           </CardContent>
         </Card>
     
-   {/* Services */}
+   /* {/* Services */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -383,7 +383,7 @@ export default function BookingCreate() {
               onChange={(e) => setNotes(e.target.value)}
             />
           </CardContent>
-        </Card>
+        </Card> */
 
         {/* Actions */}
         <div className="flex justify-end gap-4">
