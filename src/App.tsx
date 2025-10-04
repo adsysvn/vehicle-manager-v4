@@ -103,6 +103,7 @@ const App = () => (
             <Route path="operations/ctv-manager" element={<CTVManager />} />
             <Route path="operations/ctv-booking" element={<CTVBooking />} />
             <Route path="operations/ctv-tracking" element={<CTVTracking />} />
+            <Route path="operations/alerts" element={<AlertsManager />} />
             <Route path="operations/reports" element={<OperationsReports />} />
             
             {/* Transport Routes */}
