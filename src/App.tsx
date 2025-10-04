@@ -132,6 +132,11 @@ const App = () => (
             <Route path="hrm/attendance" element={<Attendance />} />
             <Route path="hrm/leave" element={<LeaveManagement />} />
             <Route path="hrm/departments" element={<HrmDepartmentManagement />} />
+            <Route path="hrm/task-assignment" element={<TaskAssignment />} />
+            <Route path="hrm/document-approval" element={<DocumentApproval />} />
+            <Route path="hrm/degrees" element={<Degrees />} />
+            <Route path="hrm/contracts" element={<Contracts />} />
+            <Route path="hrm/certificates" element={<Certificates />} />
             
             {/* Security Routes */}
             <Route path="security/roles" element={<RoleManagement />} />
