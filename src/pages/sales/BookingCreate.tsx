@@ -337,33 +337,39 @@ export default function BookingCreate() {
           </CardContent>
         </Card>
     
-   {/* Service Selection */}
-       
-              <div className="space-y-3">
-                <Label>Dịch vụ đi kèm</Label>
-                <div className="space-y-2">
-                  {availableServices.map((service) => (
-                    <div key={service.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                      <Checkbox
-                        id={service.id}
-                        checked={selectedServices.includes(service.id)}
-                        onCheckedChange={() => toggleService(service.id)}
-                      />
-                      <label
-                        htmlFor={service.id}
-                        className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {service.name}
-                      </label>
-                      <span className="text-sm text-muted-foreground">
-                        {formatCurrency(service.price)}
-                      </span>
-                    </div>
-                  ))}
+   {/* Services */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PackageCheck className="w-5 h-5" />
+              Dịch vụ đi kèm
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {availableServices.map((service) => (
+                <div key={service.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                  <Checkbox
+                    id={service.id}
+                    checked={selectedServices.includes(service.id)}
+                    onCheckedChange={() => toggleService(service.id)}
+                  />
+                  <div className="flex-1">
+                    <label
+                      htmlFor={service.id}
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                    >
+                      {service.name}
+                    </label>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {service.description}
+                    </p>
+                  </div>
                 </div>
-              </div>
-   
-        {/*End service selection */}
+              ))}
+            </div>
+          </CardContent>
+        </Card>
         {/* Additional Notes */}
         <Card>
           <CardHeader>
