@@ -338,6 +338,8 @@ export default function BookingCreate() {
         </Card>
     
    {/* Service Selection */}
+           <Card>
+          <CardContent>
               <div className="space-y-3">
                 <Label>Dịch vụ đi kèm</Label>
                 <div className="space-y-2">
@@ -361,7 +363,8 @@ export default function BookingCreate() {
                   ))}
                 </div>
               </div>
-
+          </Card>
+           </CardContent>
         {/*End service selection */}
         {/* Additional Notes */}
         <Card>
