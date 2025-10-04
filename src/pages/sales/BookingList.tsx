@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Filter, Eye, Edit, Trash2, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,42 +20,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+
+interface RoutePoint {
+  location: string;
+  datetime: string;
+}
+
+interface Vehicle {
+  type: string;
+  licensePlate?: string;
+  driver?: string;
+}
 
 const bookings = [
   {
     id: 'BK001',
     customer: 'Công ty TNHH ABC',
+    customerType: 'corporate' as const,
     contact: 'Nguyễn Văn A',
     phone: '0901234567',
-    route: 'HCM → Hà Nội',
-    date: '2024-01-15',
-    time: '08:00',
-    vehicle: '30A-123.45',
-    driver: 'Trần Văn B',
+    routePoints: [
+      { location: 'HCM', datetime: '2024-01-15 08:00' },
+      { location: 'Bình Dương', datetime: '2024-01-15 10:00' },
+      { location: 'Hà Nội', datetime: '2024-01-15 18:00' }
+    ],
+    vehicles: [
+      { type: '7 chỗ', licensePlate: '30A-123.45', driver: 'Trần Văn B' },
+      { type: '7 chỗ', licensePlate: '30A-123.46', driver: 'Lê Văn C' }
+    ],
     status: 'confirmed',
     value: 15000000,
     created: '2024-01-10'
   },
   {
     id: 'BK002',
-    customer: 'Công ty XYZ',
+    customer: 'Lê Thị C',
+    customerType: 'individual' as const,
     contact: 'Lê Thị C',
     phone: '0987654321',
-    route: 'Đà Nẵng → HCM',
-    date: '2024-01-16',
-    time: '14:30',
-    vehicle: 'Chưa phân',
-    driver: 'Chưa phân',
+    routePoints: [
+      { location: 'Đà Nẵng', datetime: '2024-01-16 14:30' },
+      { location: 'HCM', datetime: '2024-01-16 20:00' }
+    ],
+    vehicles: [
+      { type: '4 chỗ', licensePlate: 'Chưa phân', driver: 'Chưa phân' }
+    ],
     status: 'pending',
     value: 8500000,
     created: '2024-01-11'
@@ -62,13 +72,16 @@ const bookings = [
   {
     id: 'BK003',
     customer: 'Công ty DEF',
+    customerType: 'corporate' as const,
     contact: 'Phạm Văn D',
     phone: '0912345678',
-    route: 'Hà Nội → Hải Phòng',
-    date: '2024-01-17',
-    time: '10:00',
-    vehicle: '51B-678.90',
-    driver: 'Hoàng Văn E',
+    routePoints: [
+      { location: 'Hà Nội', datetime: '2024-01-17 10:00' },
+      { location: 'Hải Phòng', datetime: '2024-01-17 12:30' }
+    ],
+    vehicles: [
+      { type: '16 chỗ', licensePlate: '51B-678.90', driver: 'Hoàng Văn E' }
+    ],
     status: 'in_progress',
     value: 5200000,
     created: '2024-01-12'
@@ -76,34 +89,20 @@ const bookings = [
   {
     id: 'BK004',
     customer: 'Công ty GHI',
+    customerType: 'corporate' as const,
     contact: 'Võ Thị F',
     phone: '0923456789',
-    route: 'Cần Thơ → HCM',
-    date: '2024-01-14',
-    time: '16:00',
-    vehicle: '92C-111.22',
-    driver: 'Nguyễn Văn G',
+    routePoints: [
+      { location: 'Cần Thơ', datetime: '2024-01-14 16:00' },
+      { location: 'HCM', datetime: '2024-01-14 19:00' }
+    ],
+    vehicles: [
+      { type: '7 chỗ', licensePlate: '92C-111.22', driver: 'Nguyễn Văn G' }
+    ],
     status: 'completed',
     value: 3200000,
     created: '2024-01-09'
   }
-];
-
-// Available drivers with trip status
-const availableDrivers = [
-  { id: 'none', name: 'Không chọn', trips: 0, available: true },
-  { id: 'D001', name: 'Trần Văn B', trips: 0, available: true },
-  { id: 'D002', name: 'Hoàng Văn E', trips: 1, available: true },
-  { id: 'D003', name: 'Nguyễn Văn G', trips: 2, available: true },
-  { id: 'D004', name: 'Lê Văn H', trips: 5, available: false }
-];
-
-// Available services
-const availableServices = [
-  { id: 'water', name: 'Dịch vụ nước lọc', price: 50000 },
-  { id: 'towel', name: 'Dịch vụ khăn nước', price: 30000 },
-  { id: 'insurance', name: 'Bảo hiểm hành trình', price: 100000 },
-  { id: 'guide', name: 'Hướng dẫn viên', price: 500000 }
 ];
 
 const statusConfig = {
@@ -115,18 +114,17 @@ const statusConfig = {
 };
 
 export default function BookingList() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedDriver, setSelectedDriver] = useState('none');
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
   const filteredBookings = bookings.filter(booking => {
+    const routeString = booking.routePoints.map(p => p.location).join(' → ');
     const matchesSearch = 
       booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.route.toLowerCase().includes(searchTerm.toLowerCase());
+      routeString.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     
@@ -144,23 +142,6 @@ export default function BookingList() {
     return new Date(dateString).toLocaleDateString('vi-VN');
   };
 
-  const toggleService = (serviceId: string) => {
-    setSelectedServices(prev =>
-      prev.includes(serviceId)
-        ? prev.filter(id => id !== serviceId)
-        : [...prev, serviceId]
-    );
-  };
-
-  const handleCreateBooking = () => {
-    // Handle booking creation logic here
-    console.log('Driver:', selectedDriver);
-    console.log('Services:', selectedServices);
-    setIsDialogOpen(false);
-    setSelectedDriver('none');
-    setSelectedServices([]);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -171,131 +152,10 @@ export default function BookingList() {
             Quản lý đặt chỗ và lịch trình vận chuyển
           </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="bg-primary hover:bg-primary-dark">
-              <Plus className="w-4 h-4 mr-2" />
-              Tạo booking mới
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Tạo booking mới</DialogTitle>
-              <DialogDescription>
-                Nhập thông tin chi tiết cho booking mới
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="space-y-6 py-4">
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="customer">Khách hàng</Label>
-                  <Input id="customer" placeholder="Tên công ty/khách hàng" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="contact">Người liên hệ</Label>
-                  <Input id="contact" placeholder="Tên người liên hệ" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Số điện thoại</Label>
-                  <Input id="phone" placeholder="0901234567" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="route">Tuyến đường</Label>
-                  <Input id="route" placeholder="VD: HCM → Hà Nội" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date">Ngày khởi hành</Label>
-                  <Input id="date" type="date" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="time">Giờ khởi hành</Label>
-                  <Input id="time" type="time" />
-                </div>
-              </div>
-
-              {/* Driver Selection */}
-              <div className="space-y-2">
-                <Label htmlFor="driver">Chọn lái xe</Label>
-                <Select value={selectedDriver} onValueChange={setSelectedDriver}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn lái xe" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableDrivers.map((driver) => (
-                      <SelectItem 
-                        key={driver.id} 
-                        value={driver.id}
-                        disabled={!driver.available}
-                      >
-                        <div className="flex items-center justify-between w-full">
-                          <span>{driver.name}</span>
-                          {driver.id !== 'none' && (
-                            <Badge 
-                              variant={driver.trips === 0 ? 'default' : 'secondary'}
-                              className="ml-2"
-                            >
-                              {driver.trips} chuyến
-                            </Badge>
-                          )}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-sm text-muted-foreground">
-                  Gợi ý: Lái xe có ít chuyến được hiển thị trước
-                </p>
-              </div>
-
-              {/* Service Selection */}
-              <div className="space-y-3">
-                <Label>Dịch vụ đi kèm</Label>
-                <div className="space-y-2">
-                  {availableServices.map((service) => (
-                    <div key={service.id} className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50">
-                      <Checkbox
-                        id={service.id}
-                        checked={selectedServices.includes(service.id)}
-                        onCheckedChange={() => toggleService(service.id)}
-                      />
-                      <label
-                        htmlFor={service.id}
-                        className="flex-1 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                      >
-                        {service.name}
-                      </label>
-                      <span className="text-sm text-muted-foreground">
-                        {formatCurrency(service.price)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="value">Giá trị booking</Label>
-                <Input id="value" type="number" placeholder="15000000" />
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Hủy
-              </Button>
-              <Button onClick={handleCreateBooking}>
-                Tạo booking
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => navigate('/sales/bookings/create')}>
+          <Plus className="w-4 h-4 mr-2" />
+          Tạo booking mới
+        </Button>
       </div>
 
       {/* Filters */}
@@ -389,8 +249,7 @@ export default function BookingList() {
               <TableRow>
                 <TableHead>Mã booking</TableHead>
                 <TableHead>Khách hàng</TableHead>
-                <TableHead>Tuyến đường</TableHead>
-                <TableHead>Ngày giờ</TableHead>
+                <TableHead>Hành trình đa điểm</TableHead>
                 <TableHead>Xe & Lái xe</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Giá trị</TableHead>
@@ -403,26 +262,47 @@ export default function BookingList() {
                   <TableCell className="font-medium">{booking.id}</TableCell>
                   <TableCell>
                     <div>
-                      <div className="font-medium">{booking.customer}</div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{booking.customer}</span>
+                        <Badge variant="outline" className={booking.customerType === 'corporate' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}>
+                          {booking.customerType === 'corporate' ? 'Doanh nghiệp' : 'Khách lẻ'}
+                        </Badge>
+                      </div>
                       <div className="text-sm text-muted-foreground">
                         {booking.contact} - {booking.phone}
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{booking.route}</TableCell>
                   <TableCell>
-                    <div>
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        {formatDate(booking.date)}
-                      </div>
-                      <div className="text-sm text-muted-foreground">{booking.time}</div>
+                    <div className="space-y-1">
+                      {booking.routePoints.map((point, idx) => (
+                        <div key={idx} className="flex items-start gap-2">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <Calendar className="w-3 h-3 flex-shrink-0" />
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(point.datetime).toLocaleString('vi-VN', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <span className="text-sm font-medium">{point.location}</span>
+                        </div>
+                      ))}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div>
-                      <div className="font-medium">{booking.vehicle}</div>
-                      <div className="text-sm text-muted-foreground">{booking.driver}</div>
+                    <div className="space-y-1">
+                      {booking.vehicles.map((vehicle, idx) => (
+                        <div key={idx} className="text-sm">
+                          <Badge variant="secondary" className="mr-1">{vehicle.type}</Badge>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {vehicle.licensePlate} - {vehicle.driver}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </TableCell>
                   <TableCell>
