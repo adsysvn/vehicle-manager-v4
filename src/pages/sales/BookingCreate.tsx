@@ -23,7 +23,7 @@ interface Vehicle {
   notes: string;
 }
 
-export default function CreateBooking() {
+export default function BookingCreate() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
