@@ -213,7 +213,7 @@ export default function BookingCreate() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
-                Hành trình đa điểm
+                Hành trình
               </CardTitle>
               <Button type="button" variant="outline" size="sm" onClick={addRoutePoint}>
                 <Plus className="w-4 h-4 mr-2" />
