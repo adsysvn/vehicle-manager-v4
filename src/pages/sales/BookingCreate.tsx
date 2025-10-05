@@ -40,6 +40,25 @@ export default function BookingCreate() {
   const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
   
+  // Corporate customer fields
+  const [companyCode, setCompanyCode] = useState('');
+  const [groupCode, setGroupCode] = useState('');
+  const [airline, setAirline] = useState('');
+  const [numAdults, setNumAdults] = useState('1');
+  const [numChildren, setNumChildren] = useState('0');
+  const [referenceCode, setReferenceCode] = useState('');
+  const [tourType, setTourType] = useState('');
+  const [hasTCP, setHasTCP] = useState(false);
+  const [hasHTL, setHasHTL] = useState(false);
+  const [htlValue, setHtlValue] = useState('2.0');
+  const [minRooms, setMinRooms] = useState('');
+  const [route, setRoute] = useState('');
+  const [operationCode, setOperationCode] = useState('');
+  const [visaType, setVisaType] = useState('');
+  const [deployDate, setDeployDate] = useState('');
+  const [guestType, setGuestType] = useState('');
+  const [exchangeRate, setExchangeRate] = useState('0');
+  
   // Tour guide information
   const [tourGuideName, setTourGuideName] = useState('');
   const [tourGuidePhone, setTourGuidePhone] = useState('');
@@ -266,6 +285,185 @@ export default function BookingCreate() {
                 />
               </div>
             </div>
+
+            {customerType === 'corporate' && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                  <div className="space-y-2">
+                    <Label>Mã doanh nghiệp *</Label>
+                    <Input
+                      placeholder="DN001"
+                      value={companyCode}
+                      onChange={(e) => setCompanyCode(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Mã đoàn *</Label>
+                    <Input
+                      placeholder="SICD251122"
+                      value={groupCode}
+                      onChange={(e) => setGroupCode(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label>Hãng</Label>
+                    <Input
+                      placeholder="VN, QH..."
+                      value={airline}
+                      onChange={(e) => setAirline(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Số khách</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={numAdults}
+                      onChange={(e) => setNumAdults(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Em bé</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={numChildren}
+                      onChange={(e) => setNumChildren(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Reference</Label>
+                    <Input
+                      placeholder="REF123"
+                      value={referenceCode}
+                      onChange={(e) => setReferenceCode(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Loại tour</Label>
+                    <Select value={tourType} onValueChange={setTourType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại tour" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">Tour 1</SelectItem>
+                        <SelectItem value="2">Tour 2</SelectItem>
+                        <SelectItem value="3">Tour 3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tuyến</Label>
+                    <Input
+                      placeholder="HN-HP-QB"
+                      value={route}
+                      onChange={(e) => setRoute(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Điều hành</Label>
+                    <Input
+                      placeholder="KD7C"
+                      value={operationCode}
+                      onChange={(e) => setOperationCode(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="flex items-center space-x-2 pt-8">
+                    <Checkbox
+                      id="tcp"
+                      checked={hasTCP}
+                      onCheckedChange={(checked) => setHasTCP(checked as boolean)}
+                    />
+                    <Label htmlFor="tcp" className="cursor-pointer">TCP</Label>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="htl"
+                        checked={hasHTL}
+                        onCheckedChange={(checked) => setHasHTL(checked as boolean)}
+                      />
+                      <Label htmlFor="htl" className="cursor-pointer">HTL+</Label>
+                    </div>
+                    {hasHTL && (
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={htlValue}
+                        onChange={(e) => setHtlValue(e.target.value)}
+                        placeholder="2.0"
+                      />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Phòng &gt;=</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="60"
+                      value={minRooms}
+                      onChange={(e) => setMinRooms(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tỷ giá</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={exchangeRate}
+                      onChange={(e) => setExchangeRate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Visa</Label>
+                    <Select value={visaType} onValueChange={setVisaType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại visa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="KHONG VISA">Không visa</SelectItem>
+                        <SelectItem value="VISA">Có visa</SelectItem>
+                        <SelectItem value="E-VISA">E-visa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tuến khai</Label>
+                    <Input
+                      type="date"
+                      value={deployDate}
+                      onChange={(e) => setDeployDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Khách</Label>
+                    <Select value={guestType} onValueChange={setGuestType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn loại khách" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INBOUND">Inbound</SelectItem>
+                        <SelectItem value="OUTBOUND">Outbound</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
