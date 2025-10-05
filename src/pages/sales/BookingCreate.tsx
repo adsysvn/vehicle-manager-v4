@@ -645,7 +645,7 @@ export default function BookingCreate() {
           </CardContent>
         </Card>
 
-        {/* Booking Preview */}
+        /* {/* Booking Preview */}
         <Card className="border-primary/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -773,7 +773,7 @@ export default function BookingCreate() {
                     ))}
                   </div>
                 </div>
-              )}
+              )} */
 
               {/* Vehicles Preview */}
               {vehicles.some(v => v.type) && (
