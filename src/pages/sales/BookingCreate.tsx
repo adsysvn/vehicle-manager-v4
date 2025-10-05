@@ -52,9 +52,9 @@ export default function BookingCreate() {
   const [hasHTL, setHasHTL] = useState(false);
   const [htlValue, setHtlValue] = useState('2.0');
   const [minRooms, setMinRooms] = useState('');
-  const [route, setRoute] = useState('');
   const [operationCode, setOperationCode] = useState('');
   const [visaType, setVisaType] = useState('');
+  const [isVehicleAssigned, setIsVehicleAssigned] = useState(false);
   const [deployDate, setDeployDate] = useState('');
   const [guestType, setGuestType] = useState('');
   const [exchangeRate, setExchangeRate] = useState('0');
@@ -224,10 +224,10 @@ export default function BookingCreate() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>
-                  {customerType === 'corporate' ? 'Tên công ty' : 'Tên khách hàng'} *
+                  {customerType === 'corporate' ? 'Tên công ty (Hãng - Tên công ty)' : 'Tên khách hàng'} *
                 </Label>
                 <Input
-                  placeholder={customerType === 'corporate' ? 'Công ty TNHH ABC' : 'Nguyễn Văn A'}
+                  placeholder={customerType === 'corporate' ? 'VN - Công ty TNHH ABC' : 'Nguyễn Văn A'}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   required
@@ -290,15 +290,6 @@ export default function BookingCreate() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                   <div className="space-y-2">
-                    <Label>Mã doanh nghiệp *</Label>
-                    <Input
-                      placeholder="DN001"
-                      value={companyCode}
-                      onChange={(e) => setCompanyCode(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
                     <Label>Mã đoàn *</Label>
                     <Input
                       placeholder="SICD251122"
@@ -309,15 +300,7 @@ export default function BookingCreate() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-2">
-                    <Label>Hãng</Label>
-                    <Input
-                      placeholder="VN, QH..."
-                      value={airline}
-                      onChange={(e) => setAirline(e.target.value)}
-                    />
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label>Số khách</Label>
                     <Input
@@ -346,7 +329,7 @@ export default function BookingCreate() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Loại tour</Label>
                     <Select value={tourType} onValueChange={setTourType}>
@@ -360,22 +343,16 @@ export default function BookingCreate() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Tuyến</Label>
-                    <Input
-                      placeholder="HN-HP-QB"
-                      value={route}
-                      onChange={(e) => setRoute(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Điều hành</Label>
-                    <Input
-                      placeholder="KD7C"
-                      value={operationCode}
-                      onChange={(e) => setOperationCode(e.target.value)}
-                    />
-                  </div>
+                  {isVehicleAssigned && (
+                    <div className="space-y-2">
+                      <Label>Điều hành</Label>
+                      <Input
+                        placeholder="KD7C"
+                        value={operationCode}
+                        onChange={(e) => setOperationCode(e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -664,6 +641,174 @@ export default function BookingCreate() {
                   </div>
                 );
               })}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Booking Preview */}
+        <Card className="border-primary/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PackageCheck className="w-5 h-5" />
+              Xem trước thông tin booking
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Customer Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="text-xs text-muted-foreground">Loại khách hàng</p>
+                  <p className="font-medium">{customerType === 'corporate' ? 'Doanh nghiệp' : 'Khách lẻ'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">{customerType === 'corporate' ? 'Tên công ty' : 'Tên khách hàng'}</p>
+                  <p className="font-medium">{customerName || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Người liên hệ</p>
+                  <p className="font-medium">{contactName || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Số điện thoại</p>
+                  <p className="font-medium">{phone || '—'}</p>
+                </div>
+                {email && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="font-medium">{email}</p>
+                  </div>
+                )}
+                {tourGuideName && (
+                  <>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Hướng dẫn viên</p>
+                      <p className="font-medium">{tourGuideName}</p>
+                    </div>
+                    {tourGuidePhone && (
+                      <div>
+                        <p className="text-xs text-muted-foreground">SĐT HDV</p>
+                        <p className="font-medium">{tourGuidePhone}</p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {/* Corporate Info */}
+              {customerType === 'corporate' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  {groupCode && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Mã đoàn</p>
+                      <p className="font-medium">{groupCode}</p>
+                    </div>
+                  )}
+                  {numAdults && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Số khách</p>
+                      <p className="font-medium">{numAdults} người</p>
+                    </div>
+                  )}
+                  {numChildren && numChildren !== '0' && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Em bé</p>
+                      <p className="font-medium">{numChildren}</p>
+                    </div>
+                  )}
+                  {referenceCode && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Reference</p>
+                      <p className="font-medium">{referenceCode}</p>
+                    </div>
+                  )}
+                  {tourType && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Loại tour</p>
+                      <p className="font-medium">Tour {tourType}</p>
+                    </div>
+                  )}
+                  {visaType && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Visa</p>
+                      <p className="font-medium">{visaType}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Trip Dates */}
+              {(startDate || endDate) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
+                  {startDate && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Ngày bắt đầu</p>
+                      <p className="font-medium">{startDate}</p>
+                    </div>
+                  )}
+                  {endDate && (
+                    <div>
+                      <p className="text-xs text-muted-foreground">Ngày kết thúc</p>
+                      <p className="font-medium">{endDate}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Route Points Preview */}
+              {routePoints.some(p => p.location) && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Hành trình ({routePoints.length} điểm)</p>
+                  <div className="space-y-2">
+                    {routePoints.map((point, index) => (
+                      point.location && (
+                        <div key={point.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
+                          <Badge variant="outline">{index + 1}</Badge>
+                          <MapPin className="w-4 h-4 text-primary" />
+                          <span className="font-medium">{point.location}</span>
+                          {point.date && <span className="text-muted-foreground">• {point.date}</span>}
+                          {point.time && <span className="text-muted-foreground">• {point.time}</span>}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Vehicles Preview */}
+              {vehicles.some(v => v.type) && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Xe yêu cầu ({vehicles.filter(v => v.type).length})</p>
+                  <div className="space-y-2">
+                    {vehicles.map((vehicle, index) => (
+                      vehicle.type && (
+                        <div key={vehicle.id} className="flex items-center gap-2 p-2 bg-muted/50 rounded text-sm">
+                          <Car className="w-4 h-4 text-primary" />
+                          <span className="font-medium">{vehicle.type}</span>
+                          {vehicle.notes && <span className="text-muted-foreground">• {vehicle.notes}</span>}
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Services Preview */}
+              {selectedServices.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Dịch vụ đi kèm ({selectedServices.length})</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedServices.map((service) => {
+                      const serviceInfo = availableServices.find(s => s.id === service.id);
+                      return serviceInfo && (
+                        <Badge key={service.id} variant="secondary">
+                          {serviceInfo.name} x{service.quantity}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

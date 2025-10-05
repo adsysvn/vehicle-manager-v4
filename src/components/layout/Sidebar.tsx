@@ -144,7 +144,8 @@ const menuItems = [
     submenu: [
       { title: 'Vai trò người dùng', href: '/security/roles', icon: Shield },
       { title: 'Phòng ban', href: '/security/departments', icon: Users },
-      { title: 'Quyền truy cập', href: '/security/permissions', icon: Settings }
+      { title: 'Quyền truy cập', href: '/security/permissions', icon: Settings },
+      { title: 'Phân quyền điều hành', href: '/security/operations-permissions', icon: Car }
     ]
   }
   

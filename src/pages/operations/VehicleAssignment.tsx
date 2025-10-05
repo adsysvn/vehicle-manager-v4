@@ -80,11 +80,19 @@ const pendingTrips = [
   {
     id: 'T001',
     booking: 'BK001',
-    customer: 'Công ty ABC',
+    customer: 'VN - Công ty ABC',
     customerType: 'corporate',
     contactPerson: 'Nguyễn Văn A',
     phone: '0901234567',
     email: 'contact@abc.com',
+    groupCode: 'SICD251122',
+    numAdults: 40,
+    numChildren: 5,
+    tourType: 'Tour 1',
+    tourGuideName: 'Trần Thị C',
+    tourGuidePhone: '0909999888',
+    startDate: '2024-01-15',
+    endDate: '2024-01-20',
     route: 'HCM → Hà Nội',
     routePoints: [
       { pickup: 'HCM', dropoff: 'Hà Nội', time: '08:00', date: '2024-01-15' }
@@ -95,17 +103,29 @@ const pendingTrips = [
     passengers: 40,
     priority: 'high',
     notes: 'Khách VIP, cần xe đời mới',
+    services: [
+      { name: 'Nước uống', quantity: 50 },
+      { name: 'Khăn lạnh', quantity: 40 }
+    ],
     assignedVehicles: {} as Record<number, string>,
     assignedDrivers: {} as Record<number, string>
   },
   {
     id: 'T002',
     booking: 'BK002',
-    customer: 'Công ty XYZ',
+    customer: 'QH - Công ty XYZ',
     customerType: 'corporate',
     contactPerson: 'Trần Thị B',
     phone: '0987654321',
     email: 'contact@xyz.com',
+    groupCode: 'SICD251123',
+    numAdults: 25,
+    numChildren: 0,
+    tourType: 'Tour 2',
+    tourGuideName: 'Lê Văn D',
+    tourGuidePhone: '0908888777',
+    startDate: '2024-01-15',
+    endDate: '2024-01-16',
     route: 'Đà Nẵng → Quảng Nam → HCM',
     routePoints: [
       { pickup: 'Đà Nẵng', dropoff: 'Quảng Nam', time: '14:30', date: '2024-01-15' },
@@ -117,6 +137,7 @@ const pendingTrips = [
     passengers: 25,
     priority: 'medium',
     notes: 'Chuyến đi theo lịch trình cố định hàng tuần',
+    services: [],
     assignedVehicles: {} as Record<number, string>,
     assignedDrivers: {} as Record<number, string>
   }
@@ -193,8 +214,8 @@ export default function VehicleAssignment() {
             <div className="space-y-4">
               {/* Booking Information */}
               <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                <h3 className="font-semibold text-lg">Thông tin booking</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <h3 className="font-semibold text-lg">Thông tin booking đầy đủ</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground">Mã booking</label>
                     <p className="font-medium">{currentTrip?.booking}</p>
@@ -207,6 +228,10 @@ export default function VehicleAssignment() {
                     </Badge>
                   </div>
                   <div>
+                    <label className="text-xs text-muted-foreground">Mã đoàn</label>
+                    <p className="font-medium">{currentTrip?.groupCode}</p>
+                  </div>
+                  <div>
                     <label className="text-xs text-muted-foreground">Người liên hệ</label>
                     <p className="font-medium">{currentTrip?.contactPerson}</p>
                     <p className="text-sm text-muted-foreground">{currentTrip?.phone}</p>
@@ -216,17 +241,59 @@ export default function VehicleAssignment() {
                     <p className="font-medium">{currentTrip?.email}</p>
                   </div>
                   <div>
+                    <label className="text-xs text-muted-foreground">Loại tour</label>
+                    <p className="font-medium">{currentTrip?.tourType}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Số khách</label>
+                    <p className="font-medium">{currentTrip?.numAdults} người</p>
+                  </div>
+                  {currentTrip?.numChildren > 0 && (
+                    <div>
+                      <label className="text-xs text-muted-foreground">Em bé</label>
+                      <p className="font-medium">{currentTrip?.numChildren}</p>
+                    </div>
+                  )}
+                  <div>
                     <label className="text-xs text-muted-foreground">Dòng xe yêu cầu</label>
                     <p className="font-medium">{currentTrip?.vehicleType}</p>
                   </div>
+                  {currentTrip?.tourGuideName && (
+                    <>
+                      <div>
+                        <label className="text-xs text-muted-foreground">Hướng dẫn viên</label>
+                        <p className="font-medium">{currentTrip?.tourGuideName}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground">SĐT HDV</label>
+                        <p className="font-medium">{currentTrip?.tourGuidePhone}</p>
+                      </div>
+                    </>
+                  )}
                   <div>
-                    <label className="text-xs text-muted-foreground">Số hành khách</label>
-                    <p className="font-medium">{currentTrip?.passengers} người</p>
+                    <label className="text-xs text-muted-foreground">Ngày bắt đầu</label>
+                    <p className="font-medium">{currentTrip?.startDate}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Ngày kết thúc</label>
+                    <p className="font-medium">{currentTrip?.endDate}</p>
                   </div>
                   {currentTrip?.notes && (
-                    <div className="col-span-2">
+                    <div className="col-span-3">
                       <label className="text-xs text-muted-foreground">Ghi chú</label>
                       <p className="text-sm">{currentTrip.notes}</p>
+                    </div>
+                  )}
+                  {currentTrip?.services && currentTrip.services.length > 0 && (
+                    <div className="col-span-3">
+                      <label className="text-xs text-muted-foreground">Dịch vụ đi kèm</label>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        {currentTrip.services.map((service, idx) => (
+                          <Badge key={idx} variant="secondary">
+                            {service.name} x{service.quantity}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>

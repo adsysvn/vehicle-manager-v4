@@ -62,6 +62,7 @@ import BookingCreate from "./pages/sales/BookingCreate";
 import DriverManagement from "./pages/transport/DriverManagement";
 import InvoiceEmailSync from "./pages/accounting/InvoiceEmailSync";
 import HrmDepartmentManagement from "./pages/hrm/DepartmentManagement";
+import OperationsPermissions from "./pages/security/OperationsPermissions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -144,6 +145,7 @@ const App = () => (
             <Route path="security/roles" element={<RoleManagement />} />
             <Route path="security/departments" element={<DepartmentManagement />} />
             <Route path="security/permissions" element={<PermissionManagement />} />
+            <Route path="security/operations-permissions" element={<OperationsPermissions />} />
             
             {/* KPI Routes */}
             <Route path="kpi/strategy" element={<CompanyStrategy />} />
