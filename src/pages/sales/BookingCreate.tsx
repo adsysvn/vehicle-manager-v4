@@ -24,6 +24,11 @@ interface Vehicle {
   notes: string;
 }
 
+interface ServiceWithQuantity {
+  id: string;
+  quantity: number;
+}
+
 export default function BookingCreate() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -34,6 +39,14 @@ export default function BookingCreate() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [notes, setNotes] = useState('');
+  
+  // Tour guide information
+  const [tourGuideName, setTourGuideName] = useState('');
+  const [tourGuidePhone, setTourGuidePhone] = useState('');
+  
+  // Trip dates
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>([
     { id: '1', location: '', date: '', time: '' },
@@ -44,7 +57,7 @@ export default function BookingCreate() {
     { id: '1', type: '', notes: '' }
   ]);
 
-  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+  const [selectedServices, setSelectedServices] = useState<ServiceWithQuantity[]>([]);
 
   const availableServices = [
     { id: 'tour-guide', name: 'Hướng dẫn viên', description: 'Dịch vụ hướng dẫn viên du lịch' },
@@ -57,10 +70,18 @@ export default function BookingCreate() {
   ];
 
   const toggleService = (serviceId: string) => {
+    setSelectedServices(prev => {
+      const exists = prev.find(s => s.id === serviceId);
+      if (exists) {
+        return prev.filter(s => s.id !== serviceId);
+      }
+      return [...prev, { id: serviceId, quantity: 1 }];
+    });
+  };
+
+  const updateServiceQuantity = (serviceId: string, quantity: number) => {
     setSelectedServices(prev =>
-      prev.includes(serviceId)
-        ? prev.filter(id => id !== serviceId)
-        : [...prev, serviceId]
+      prev.map(s => s.id === serviceId ? { ...s, quantity } : s)
     );
   };
 
@@ -225,6 +246,26 @@ export default function BookingCreate() {
                 />
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tên hướng dẫn viên</Label>
+                <Input
+                  placeholder="Nguyễn Văn B"
+                  value={tourGuideName}
+                  onChange={(e) => setTourGuideName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>SĐT hướng dẫn viên</Label>
+                <Input
+                  type="tel"
+                  placeholder="0901234567"
+                  value={tourGuidePhone}
+                  onChange={(e) => setTourGuidePhone(e.target.value)}
+                />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -243,6 +284,26 @@ export default function BookingCreate() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
+              <div className="space-y-2">
+                <Label>Ngày bắt đầu *</Label>
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ngày kết thúc *</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
             {routePoints.map((point, index) => (
               <div key={point.id} className="flex gap-4 items-start p-4 border rounded-lg">
                 <Badge variant="secondary" className="mt-2">
@@ -368,26 +429,43 @@ export default function BookingCreate() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {availableServices.map((service) => (
-                <div key={service.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
-                  <Checkbox
-                    id={service.id}
-                    checked={selectedServices.includes(service.id)}
-                    onCheckedChange={() => toggleService(service.id)}
-                  />
-                  <div className="flex-1">
-                    <label
-                      htmlFor={service.id}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                    >
-                      {service.name}
-                    </label>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {service.description}
-                    </p>
+              {availableServices.map((service) => {
+                const selectedService = selectedServices.find(s => s.id === service.id);
+                const isSelected = !!selectedService;
+                
+                return (
+                  <div key={service.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-accent/50 transition-colors">
+                    <Checkbox
+                      id={service.id}
+                      checked={isSelected}
+                      onCheckedChange={() => toggleService(service.id)}
+                    />
+                    <div className="flex-1 space-y-2">
+                      <label
+                        htmlFor={service.id}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {service.name}
+                      </label>
+                      <p className="text-sm text-muted-foreground">
+                        {service.description}
+                      </p>
+                      {isSelected && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Label className="text-xs">Số lượng:</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={selectedService.quantity}
+                            onChange={(e) => updateServiceQuantity(service.id, parseInt(e.target.value) || 1)}
+                            className="w-20 h-8"
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
