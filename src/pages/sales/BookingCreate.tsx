@@ -290,6 +290,18 @@ export default function BookingCreate() {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                   <div className="space-y-2">
+                    <Label htmlFor="company">Hãng - Tên doanh nghiệp *</Label>
+                    <Input
+                      id="company"
+                      placeholder="VD: VN - Công ty Du Lịch ABC"
+                      value={companyCode}
+                      onChange={(e) => setCompanyCode(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      💡 Mã hãng cùng dòng phía trước tên doanh nghiệp
+                    </p>
+                  </div>
+                  <div className="space-y-2">
                     <Label>Mã đoàn *</Label>
                     <Input
                       placeholder="SICD251122"
