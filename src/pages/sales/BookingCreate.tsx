@@ -42,16 +42,13 @@ export default function BookingCreate() {
   
   // Corporate customer fields
   const [companyCode, setCompanyCode] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [groupCode, setGroupCode] = useState('');
   const [airline, setAirline] = useState('');
   const [numAdults, setNumAdults] = useState('1');
   const [numChildren, setNumChildren] = useState('0');
   const [referenceCode, setReferenceCode] = useState('');
   const [tourType, setTourType] = useState('');
-  const [hasTCP, setHasTCP] = useState(false);
-  const [hasHTL, setHasHTL] = useState(false);
-  const [htlValue, setHtlValue] = useState('2.0');
-  const [minRooms, setMinRooms] = useState('');
   const [operationCode, setOperationCode] = useState('');
   const [visaType, setVisaType] = useState('');
   const [isVehicleAssigned, setIsVehicleAssigned] = useState(false);
@@ -79,7 +76,6 @@ export default function BookingCreate() {
   const [selectedServices, setSelectedServices] = useState<ServiceWithQuantity[]>([]);
 
   const availableServices = [
-    { id: 'tour-guide', name: 'Hướng dẫn viên', description: 'Dịch vụ hướng dẫn viên du lịch' },
     { id: 'meals', name: 'Ăn uống', description: 'Dịch vụ bữa ăn cho khách' },
     { id: 'water', name: 'Nước uống', description: 'Cung cấp nước uống' },
     { id: 'towels', name: 'Khăn lạnh', description: 'Dịch vụ khăn lạnh' },
@@ -224,10 +220,10 @@ export default function BookingCreate() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>
-                  {customerType === 'corporate' ? 'Tên công ty (Hãng - Tên công ty)' : 'Tên khách hàng'} *
+                  {customerType === 'corporate' ? 'Tên công ty' : 'Tên khách hàng'} *
                 </Label>
                 <Input
-                  placeholder={customerType === 'corporate' ? 'VN - Công ty TNHH ABC' : 'Nguyễn Văn A'}
+                  placeholder={customerType === 'corporate' ? 'Công ty TNHH ABC' : 'Nguyễn Văn A'}
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   required
@@ -288,18 +284,24 @@ export default function BookingCreate() {
 
             {customerType === 'corporate' && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
                   <div className="space-y-2">
-                    <Label htmlFor="company">Hãng - Tên doanh nghiệp *</Label>
+                    <Label htmlFor="companyCode">Mã công ty *</Label>
                     <Input
-                      id="company"
-                      placeholder="VD: VN - Công ty Du Lịch ABC"
+                      id="companyCode"
+                      placeholder="VN"
                       value={companyCode}
                       onChange={(e) => setCompanyCode(e.target.value)}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      💡 Mã hãng cùng dòng phía trước tên doanh nghiệp
-                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="companyNameField">Tên công ty *</Label>
+                    <Input
+                      id="companyNameField"
+                      placeholder="Vietnam Airlines"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label>Mã đoàn *</Label>
@@ -367,51 +369,21 @@ export default function BookingCreate() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="flex items-center space-x-2 pt-8">
-                    <Checkbox
-                      id="tcp"
-                      checked={hasTCP}
-                      onCheckedChange={(checked) => setHasTCP(checked as boolean)}
-                    />
-                    <Label htmlFor="tcp" className="cursor-pointer">TCP</Label>
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="htl"
-                        checked={hasHTL}
-                        onCheckedChange={(checked) => setHasHTL(checked as boolean)}
-                      />
-                      <Label htmlFor="htl" className="cursor-pointer">HTL+</Label>
-                    </div>
-                    {hasHTL && (
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={htlValue}
-                        onChange={(e) => setHtlValue(e.target.value)}
-                        placeholder="2.0"
-                      />
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Phòng &gt;=</Label>
+                    <Label>Ngày bắt đầu</Label>
                     <Input
-                      type="number"
-                      min="0"
-                      placeholder="60"
-                      value={minRooms}
-                      onChange={(e) => setMinRooms(e.target.value)}
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label>Tỷ giá</Label>
+                    <Label>Ngày kết thúc</Label>
                     <Input
-                      type="number"
-                      min="0"
-                      value={exchangeRate}
-                      onChange={(e) => setExchangeRate(e.target.value)}
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
                     />
                   </div>
                 </div>
