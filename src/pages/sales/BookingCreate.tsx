@@ -402,14 +402,14 @@ export default function BookingCreate() {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label>Tuến khai</Label>
                     <Input
                       type="date"
                       value={deployDate}
                       onChange={(e) => setDeployDate(e.target.value)}
                     />
-                  </div>
+                  </div> */}
                   <div className="space-y-2">
                     <Label>Khách</Label>
                     <Select value={guestType} onValueChange={setGuestType}>
