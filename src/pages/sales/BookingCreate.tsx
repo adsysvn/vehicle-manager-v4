@@ -466,7 +466,7 @@ export default function BookingCreate() {
             {routePoints.map((point, index) => (
               <div key={point.id} className="flex gap-4 items-start p-4 border rounded-lg">
                 <Badge variant="secondary" className="mt-2">
-                  Điểm {index + 1}
+                  Ngày {index + 1}
                 </Badge>
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
