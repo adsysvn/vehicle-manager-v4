@@ -63,6 +63,9 @@ import DriverManagement from "./pages/transport/DriverManagement";
 import InvoiceEmailSync from "./pages/accounting/InvoiceEmailSync";
 import HrmDepartmentManagement from "./pages/hrm/DepartmentManagement";
 import OperationsPermissions from "./pages/security/OperationsPermissions";
+import MeetingRoomBooking from "./pages/requests/MeetingRoomBooking";
+import BusinessTripManagement from "./pages/requests/BusinessTripManagement";
+import OfficeShopping from "./pages/requests/OfficeShopping";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -154,6 +157,11 @@ const App = () => (
             <Route path="kpi/department" element={<DepartmentKPI />} />
             <Route path="kpi/individual" element={<IndividualKPI />} />
             <Route path="kpi/dashboard" element={<KPIDashboard />} />
+            
+            {/* Request Routes */}
+            <Route path="requests/meeting-room" element={<MeetingRoomBooking />} />
+            <Route path="requests/business-trip" element={<BusinessTripManagement />} />
+            <Route path="requests/office-shopping" element={<OfficeShopping />} />
           </Route>
           
           {/* 404 Route */}

@@ -22,7 +22,8 @@ import {
   Package,
   Building,
   Mail,
-  Bell
+  Bell,
+  Briefcase
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -146,6 +147,16 @@ const menuItems = [
       { title: 'Phòng ban', href: '/security/departments', icon: Users },
       { title: 'Quyền truy cập', href: '/security/permissions', icon: Settings },
       { title: 'Phân quyền điều hành', href: '/security/operations-permissions', icon: Car }
+    ]
+  },
+  {
+    title: 'Yêu cầu đề xuất',
+    icon: Briefcase,
+    color: 'text-teal-500',
+    submenu: [
+      { title: 'Đặt phòng họp', href: '/requests/meeting-room', icon: Building },
+      { title: 'Quản lý công tác', href: '/requests/business-trip', icon: MapPin },
+      { title: 'Mua sắm VPP', href: '/requests/office-shopping', icon: Package }
     ]
   }
   

@@ -105,6 +105,19 @@ const Index = () => {
         { name: 'Phòng ban', path: '/security/departments' },
         { name: 'Quyền truy cập', path: '/security/permissions' }
       ]
+    },
+    {
+      title: 'Yêu cầu đề xuất',
+      description: 'Đặt phòng họp, công tác, mua sắm VPP',
+      icon: Briefcase,
+      color: 'text-teal-500',
+      bgColor: 'bg-teal-500/10',
+      path: '/requests/meeting-room',
+      items: [
+        { name: 'Đặt phòng họp', path: '/requests/meeting-room' },
+        { name: 'Quản lý công tác', path: '/requests/business-trip' },
+        { name: 'Mua sắm VPP', path: '/requests/office-shopping' }
+      ]
     }
   ];
 
