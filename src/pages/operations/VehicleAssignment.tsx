@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Car, User, MapPin, Clock, Search, Plus, RefreshCw, Filter, Calendar } from 'lucide-react';
+import { Car, User, MapPin, Clock, Search, Plus, RefreshCw, Filter, Calendar, Printer } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { vi } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const vehicles = [
   {
@@ -309,7 +318,8 @@ export default function VehicleAssignment() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
 
   const currentTrip = pendingTrips.find(t => t.id === selectedTrip);
   const isMultiPoint = currentTrip && currentTrip.routePoints.length > 2;
@@ -474,12 +484,6 @@ export default function VehicleAssignment() {
     });
   };
 
-  // Get unique dates from bookings
-  const availableDates = useMemo(() => {
-    const dates = assignedBookings.map(b => b.date);
-    return Array.from(new Set(dates)).sort();
-  }, []);
-
   // Filter bookings based on search, date, and status
   const filteredBookings = useMemo(() => {
     return assignedBookings.filter(booking => {
@@ -497,8 +501,9 @@ export default function VehicleAssignment() {
       if (dateFilter === 'today') {
         const today = new Date().toISOString().split('T')[0];
         if (booking.date !== today) return false;
-      } else if (dateFilter === 'custom' && selectedDate) {
-        if (booking.date !== selectedDate) return false;
+      } else if (dateFilter === 'range' && startDate && endDate) {
+        const bookingDate = new Date(booking.date);
+        if (bookingDate < startDate || bookingDate > endDate) return false;
       }
 
       // Status filter
@@ -511,7 +516,81 @@ export default function VehicleAssignment() {
       // Sort by date ascending (earliest first)
       return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
-  }, [searchTerm, dateFilter, selectedDate, statusFilter]);
+  }, [searchTerm, dateFilter, startDate, endDate, statusFilter]);
+
+  const handlePrintBookings = () => {
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Danh sách Booking đã phân xe</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; color: #333; }
+            .info { text-align: center; margin-bottom: 20px; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f4f4f4; font-weight: bold; }
+            tr:nth-child(even) { background-color: #f9f9f9; }
+            .print-date { text-align: right; margin-top: 20px; font-style: italic; }
+          </style>
+        </head>
+        <body>
+          <h1>DANH SÁCH BOOKING ĐÃ PHÂN XE</h1>
+          <div class="info">
+            ${dateFilter === 'today' ? 'Ngày hôm nay' : dateFilter === 'range' && startDate && endDate ? 
+              `Từ ngày ${format(startDate, 'dd/MM/yyyy', { locale: vi })} đến ${format(endDate, 'dd/MM/yyyy', { locale: vi })}` : 
+              'Tất cả booking'}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Mã booking</th>
+                <th>Khách hàng</th>
+                <th>Mã đoàn</th>
+                <th>Ngày</th>
+                <th>Tuyến đường</th>
+                <th>Xe phân công</th>
+                <th>Lái xe</th>
+                <th>Điều hành</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredBookings.map(booking => `
+                <tr>
+                  <td>${booking.booking}</td>
+                  <td>${booking.customer}</td>
+                  <td>${booking.groupCode}</td>
+                  <td>${booking.date}</td>
+                  <td>${booking.route}</td>
+                  <td>${Object.values(booking.assignedVehicles).map(vId => {
+                    const v = vehicles.find(vehicle => vehicle.id === vId);
+                    return v ? v.license : vId;
+                  }).join(', ')}</td>
+                  <td>${Object.values(booking.assignedDrivers).map(dId => {
+                    const d = drivers.find(driver => driver.id === dId);
+                    return d ? d.name : dId;
+                  }).join(', ')}</td>
+                  <td>${booking.assignedBy || ''}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="print-date">In ngày: ${format(new Date(), 'dd/MM/yyyy HH:mm', { locale: vi })}</div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        printWindow.print();
+      }, 250);
+    }
+  };
 
   const getVehicleInfo = (vehicleId: string) => {
     return vehicles.find(v => v.id === vehicleId);
@@ -1077,7 +1156,7 @@ export default function VehicleAssignment() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
             <div className="md:col-span-2">
               <div className="relative">
@@ -1091,21 +1170,89 @@ export default function VehicleAssignment() {
               </div>
             </div>
 
-            {/* Date Filter */}
-            <Select value={dateFilter} onValueChange={setDateFilter}>
+            {/* Date Filter Type */}
+            <Select value={dateFilter} onValueChange={(value) => {
+              setDateFilter(value);
+              if (value !== 'range') {
+                setStartDate(undefined);
+                setEndDate(undefined);
+              }
+            }}>
               <SelectTrigger>
                 <SelectValue placeholder="Lọc theo ngày" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả ngày</SelectItem>
                 <SelectItem value="today">Hôm nay</SelectItem>
-                <SelectItem value="custom">Chọn ngày cụ thể</SelectItem>
+                <SelectItem value="range">Chọn khoảng ngày</SelectItem>
               </SelectContent>
             </Select>
+          </div>
 
+          {/* Date Range Picker */}
+          {dateFilter === 'range' && (
+            <div className="mt-4 flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Từ ngày:</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[200px] justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "dd/MM/yyyy", { locale: vi }) : "Chọn ngày"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <label className="text-sm font-medium">Đến ngày:</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-[200px] justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "dd/MM/yyyy", { locale: vi }) : "Chọn ngày"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      disabled={(date) => startDate ? date < startDate : false}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex items-center justify-between gap-4">
             {/* Status Filter */}
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger>
+              <SelectTrigger className="w-[200px]">
                 <SelectValue placeholder="Lọc theo trạng thái" />
               </SelectTrigger>
               <SelectContent>
@@ -1115,27 +1262,17 @@ export default function VehicleAssignment() {
                 <SelectItem value="completed">Hoàn thành</SelectItem>
               </SelectContent>
             </Select>
-          </div>
 
-          {/* Custom Date Picker */}
-          {dateFilter === 'custom' && (
-            <div className="mt-4">
-              <label className="text-sm font-medium mb-2 block">Chọn ngày:</label>
-              <div className="flex gap-2">
-                {availableDates.map(date => (
-                  <Button
-                    key={date}
-                    variant={selectedDate === date ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedDate(date)}
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {date}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
+            {/* Print Button */}
+            <Button 
+              onClick={handlePrintBookings}
+              variant="outline"
+              className="ml-auto"
+            >
+              <Printer className="w-4 h-4 mr-2" />
+              In danh sách ({filteredBookings.length})
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
