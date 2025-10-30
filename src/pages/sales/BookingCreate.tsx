@@ -64,6 +64,10 @@ export default function BookingCreate() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Additional charges
+  const [additionalKm, setAdditionalKm] = useState('0');
+  const [additionalServices, setAdditionalServices] = useState('');
+
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>([
     { id: '1', location: '', date: '', time: '' },
     { id: '2', location: '', date: '', time: '' }
@@ -629,7 +633,43 @@ export default function BookingCreate() {
           </CardContent>
         </Card>
 
-        
+        {/* Additional Charges */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PackageCheck className="w-5 h-5" />
+              Phát sinh & Dịch vụ
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Số km phát sinh</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="0"
+                    value={additionalKm}
+                    onChange={(e) => setAdditionalKm(e.target.value)}
+                  />
+                  <span className="text-sm text-muted-foreground">km</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Số km vượt quá hợp đồng</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Dịch vụ khác</Label>
+                <Textarea
+                  placeholder="Mô tả các dịch vụ phát sinh khác..."
+                  rows={3}
+                  value={additionalServices}
+                  onChange={(e) => setAdditionalServices(e.target.value)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Additional Notes */}
         <Card>
