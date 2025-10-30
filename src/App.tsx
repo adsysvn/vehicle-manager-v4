@@ -57,6 +57,7 @@ import CustomerManagement from "./pages/sales/CustomerManagement";
 import PricingPerKm from "./pages/transport/PricingPerKm";
 import ExpenseManagement from "./pages/accounting/ExpenseManagement";
 import OperationsTravelDocuments from "./pages/operations/TravelDocuments";
+import BookingManagement from "./pages/operations/BookingManagement";
 import MultiStopBooking from "./pages/operations/MultiStopBooking";
 import BookingCreate from "./pages/sales/BookingCreate";
 import DriverManagement from "./pages/transport/DriverManagement";
@@ -101,6 +102,7 @@ const App = () => (
             
             {/* Operations Routes */}
             <Route path="operations/vehicle-assignment" element={<VehicleAssignment />} />
+            <Route path="operations/booking-management" element={<BookingManagement />} />
             <Route path="operations/travel-documents" element={<OperationsTravelDocuments />} />
             <Route path="operations/multi-stop-booking" element={<MultiStopBooking />} />
             <Route path="operations/gps-monitor" element={<GPSMonitor />} />
