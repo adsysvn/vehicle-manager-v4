@@ -56,7 +56,7 @@ import KPIDashboard from "./pages/kpi/KPIDashboard";
 import CustomerManagement from "./pages/sales/CustomerManagement";
 import PricingPerKm from "./pages/transport/PricingPerKm";
 import ExpenseManagement from "./pages/accounting/ExpenseManagement";
-import TravelDocuments from "./pages/transport/TravelDocuments";
+import OperationsTravelDocuments from "./pages/operations/TravelDocuments";
 import MultiStopBooking from "./pages/operations/MultiStopBooking";
 import BookingCreate from "./pages/sales/BookingCreate";
 import DriverManagement from "./pages/transport/DriverManagement";
@@ -101,6 +101,7 @@ const App = () => (
             
             {/* Operations Routes */}
             <Route path="operations/vehicle-assignment" element={<VehicleAssignment />} />
+            <Route path="operations/travel-documents" element={<OperationsTravelDocuments />} />
             <Route path="operations/multi-stop-booking" element={<MultiStopBooking />} />
             <Route path="operations/gps-monitor" element={<GPSMonitor />} />
             <Route path="operations/incidents" element={<IncidentManager />} />
@@ -115,7 +116,6 @@ const App = () => (
             <Route path="transport/drivers" element={<DriverList />} />
             <Route path="transport/driver-management" element={<DriverManagement />} />
             <Route path="transport/pricing" element={<PricingPerKm />} />
-            <Route path="transport/travel-documents" element={<TravelDocuments />} />
             <Route path="transport/maintenance" element={<MaintenanceSchedule />} />
             <Route path="transport/fuel" element={<FuelManagement />} />
             <Route path="transport/registration" element={<VehicleRegistration />} />

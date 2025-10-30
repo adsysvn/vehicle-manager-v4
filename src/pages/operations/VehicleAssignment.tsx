@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 const vehicles = [
   {
@@ -159,6 +161,8 @@ const statusConfig = {
 };
 
 export default function VehicleAssignment() {
+  const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
@@ -203,6 +207,31 @@ export default function VehicleAssignment() {
       ...prev,
       [vehicleIndex]: driverId
     }));
+  };
+
+  const handleConfirmAssignment = () => {
+    if (!currentTrip) return;
+
+    // Show success toast
+    toast({
+      title: 'Phân công thành công',
+      description: `Đã phân xe và lái xe cho booking ${currentTrip.booking}. Giấy đi đường đã được tạo tự động.`,
+    });
+
+    // Navigate to travel documents after 1.5 seconds
+    setTimeout(() => {
+      navigate('/operations/travel-documents');
+    }, 1500);
+
+    // Reset state
+    setSelectedTrip(null);
+    setSelectedVehicle(null);
+    setSelectedDriver(null);
+    setPointVehicles({});
+    setPointDrivers({});
+    setVehicleAssignments({});
+    setDriverAssignments({});
+    setVehicleFilter('all');
   };
 
   return (
@@ -536,6 +565,7 @@ export default function VehicleAssignment() {
               </Button>
               <Button 
                 className="bg-success"
+                onClick={handleConfirmAssignment}
                 disabled={
                   isMultiPoint 
                     ? Object.keys(pointVehicles).length === 0 || Object.keys(pointDrivers).length === 0

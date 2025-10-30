@@ -68,6 +68,7 @@ const menuItems = [
     color: 'text-orange-500',
     submenu: [
       { title: 'Phân xe & lái xe', href: '/operations/vehicle-assignment', icon: Car },
+      { title: 'Giấy đi đường', href: '/operations/travel-documents', icon: FileText },
       // { title: 'Hành trình đa điểm', href: '/operations/multi-stop-booking', icon: MapPin },
       { title: 'Giám sát GPS', href: '/operations/gps-monitor', icon: MapPin },
       { title: 'Quản lý sự cố', href: '/operations/incidents', icon: AlertTriangle },
@@ -86,8 +87,6 @@ const menuItems = [
       { title: 'Hồ sơ xe', href: '/transport/vehicles', icon: Car },
       // { title: 'Hồ sơ lái xe', href: '/transport/drivers', icon: Users },
       { title: 'Quản lý lái xe', href: '/transport/driver-management', icon: UserCog },
-      
-      { title: 'Giấy đi đường', href: '/transport/travel-documents', icon: FileText },
       { title: 'Lịch bảo dưỡng', href: '/transport/maintenance', icon: Settings },
       { title: 'Quản lý nhiên liệu', href: '/transport/fuel', icon: Fuel },
       { title: 'Quản lý đăng kiểm', href: '/transport/registration', icon: FileText },
