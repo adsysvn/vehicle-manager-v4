@@ -1316,6 +1316,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_user_with_profile: {
+        Args: {
+          p_department_id: string
+          p_email: string
+          p_employee_code: string
+          p_full_name: string
+          p_password: string
+          p_phone: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1323,6 +1334,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      seed_sample_data: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "manager" | "staff" | "driver" | "accountant" | "hr"
