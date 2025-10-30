@@ -802,12 +802,20 @@ export default function BookingList() {
         <div className="info">
           <p><strong>Ngày in:</strong> {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
           <p><strong>Tổng số booking:</strong> {filteredBookings.length}</p>
-          {groupCodeFilter && <p><strong>Mã đoàn:</strong> {groupCodeFilter}</p>}
-          {driverFilter && <p><strong>Lái xe:</strong> {driverFilter}</p>}
-          {vehicleFilter && <p><strong>Xe:</strong> {vehicleFilter}</p>}
-          {customerFilter && <p><strong>Khách hàng:</strong> {customerFilter}</p>}
-          {startDateFilter && <p><strong>Từ ngày:</strong> {format(new Date(startDateFilter), 'dd/MM/yyyy')}</p>}
-          {endDateFilter && <p><strong>Đến ngày:</strong> {format(new Date(endDateFilter), 'dd/MM/yyyy')}</p>}
+          <p><strong>Điều kiện lọc:</strong></p>
+          <ul style={{ marginLeft: '20px', marginTop: '5px' }}>
+            {searchTerm && <li><strong>Từ khóa:</strong> {searchTerm}</li>}
+            {statusFilter !== 'all' && <li><strong>Trạng thái:</strong> {statusConfig[statusFilter as keyof typeof statusConfig]?.label || statusFilter}</li>}
+            {groupCodeFilter && <li><strong>Mã đoàn:</strong> {groupCodeFilter}</li>}
+            {customerFilter && <li><strong>Khách hàng:</strong> {customerFilter}</li>}
+            {driverFilter && <li><strong>Lái xe:</strong> {driverFilter}</li>}
+            {vehicleFilter && <li><strong>Xe:</strong> {vehicleFilter}</li>}
+            {startDateFilter && <li><strong>Từ ngày:</strong> {format(new Date(startDateFilter), 'dd/MM/yyyy')}</li>}
+            {endDateFilter && <li><strong>Đến ngày:</strong> {format(new Date(endDateFilter), 'dd/MM/yyyy')}</li>}
+            {!searchTerm && statusFilter === 'all' && !groupCodeFilter && !customerFilter && !driverFilter && !vehicleFilter && !startDateFilter && !endDateFilter && (
+              <li><em>Không có điều kiện lọc (hiển thị tất cả)</em></li>
+            )}
+          </ul>
         </div>
         <table>
           <thead>
