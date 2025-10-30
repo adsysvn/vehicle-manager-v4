@@ -281,6 +281,60 @@ export default function VehicleAssignment() {
     }));
   };
 
+  const handleAutoAssign = () => {
+    if (!currentTrip) return;
+
+    const newVehicleAssignments: Record<number, string> = {};
+    const newDriverAssignments: Record<number, string> = {};
+    const usedVehicles: string[] = [];
+    const usedDrivers: string[] = [];
+
+    // Auto-assign vehicles and drivers for each required vehicle
+    currentTrip.requiredVehicles.forEach((reqVehicle, index) => {
+      // Find best matching vehicle
+      const matchingVehicle = filteredVehicles.find(v => {
+        // Check if vehicle matches type requirement
+        const matchesType = v.type.includes(reqVehicle.type.split(' ')[0]);
+        // Check if not already used
+        const notUsed = !usedVehicles.includes(v.id);
+        return matchesType && notUsed;
+      });
+
+      // If exact match not found, use any available vehicle
+      const selectedVehicle = matchingVehicle || filteredVehicles.find(v => !usedVehicles.includes(v.id));
+
+      if (selectedVehicle) {
+        newVehicleAssignments[index] = selectedVehicle.id;
+        usedVehicles.push(selectedVehicle.id);
+      }
+
+      // Find best driver (highest rating, most experience)
+      const bestDriver = availableDrivers
+        .filter(d => !usedDrivers.includes(d.id))
+        .sort((a, b) => {
+          // Sort by rating first
+          if (b.rating !== a.rating) return b.rating - a.rating;
+          // Then by experience (assuming format "X năm")
+          const expA = parseInt(a.experience);
+          const expB = parseInt(b.experience);
+          return expB - expA;
+        })[0];
+
+      if (bestDriver) {
+        newDriverAssignments[index] = bestDriver.id;
+        usedDrivers.push(bestDriver.id);
+      }
+    });
+
+    setVehicleAssignments(newVehicleAssignments);
+    setDriverAssignments(newDriverAssignments);
+
+    toast({
+      title: 'Tự động phân công thành công',
+      description: `Đã tự động chọn ${Object.keys(newVehicleAssignments).length} xe và ${Object.keys(newDriverAssignments).length} lái xe phù hợp.`,
+    });
+  };
+
   const handleConfirmAssignment = () => {
     if (!currentTrip) return;
 
@@ -622,31 +676,41 @@ export default function VehicleAssignment() {
                 </div>
               )}
             </div>
-            <div className="flex justify-end space-x-2 mt-4">
-              <Button variant="outline" onClick={() => {
-                setSelectedTrip(null);
-                setSelectedVehicle(null);
-                setSelectedDriver(null);
-                setPointVehicles({});
-                setPointDrivers({});
-                setVehicleAssignments({});
-                setDriverAssignments({});
-                setVehicleFilter('all');
-              }}>
-                Hủy
-              </Button>
+            <div className="flex justify-between items-center mt-4">
               <Button 
-                className="bg-success"
-                onClick={handleConfirmAssignment}
-                disabled={
-                  isMultiPoint 
-                    ? Object.keys(pointVehicles).length === 0 || Object.keys(pointDrivers).length === 0
-                    : Object.keys(vehicleAssignments).length !== currentTrip?.requiredVehicles.length ||
-                      Object.keys(driverAssignments).length !== currentTrip?.requiredVehicles.length
-                }
+                variant="secondary" 
+                onClick={handleAutoAssign}
+                disabled={isMultiPoint || !currentTrip || filteredVehicles.length === 0 || availableDrivers.length === 0}
               >
-                Xác nhận phân công
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Tự động phân xe
               </Button>
+              <div className="flex space-x-2">
+                <Button variant="outline" onClick={() => {
+                  setSelectedTrip(null);
+                  setSelectedVehicle(null);
+                  setSelectedDriver(null);
+                  setPointVehicles({});
+                  setPointDrivers({});
+                  setVehicleAssignments({});
+                  setDriverAssignments({});
+                  setVehicleFilter('all');
+                }}>
+                  Hủy
+                </Button>
+                <Button 
+                  className="bg-success"
+                  onClick={handleConfirmAssignment}
+                  disabled={
+                    isMultiPoint 
+                      ? Object.keys(pointVehicles).length === 0 || Object.keys(pointDrivers).length === 0
+                      : Object.keys(vehicleAssignments).length !== currentTrip?.requiredVehicles.length ||
+                        Object.keys(driverAssignments).length !== currentTrip?.requiredVehicles.length
+                  }
+                >
+                  Xác nhận phân công
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
