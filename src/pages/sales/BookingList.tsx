@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, Filter, Eye, Edit, Trash2, Calendar, X, User, Phone, Users, Plane } from 'lucide-react';
+import { Search, Plus, Filter, Eye, Edit, Trash2, Calendar, X, User, Phone, Users, Plane, Printer } from 'lucide-react';
+import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,9 +156,28 @@ export default function BookingList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [groupCodeFilter, setGroupCodeFilter] = useState('');
+  const [driverFilter, setDriverFilter] = useState('');
+  const [vehicleFilter, setVehicleFilter] = useState('');
+  const [customerFilter, setCustomerFilter] = useState('');
+  const [startDateFilter, setStartDateFilter] = useState('');
+  const [endDateFilter, setEndDateFilter] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const printRef = useRef<HTMLDivElement>(null);
+
+  // Get unique values for filters
+  const uniqueDrivers = Array.from(
+    new Set(bookings.flatMap(b => b.vehicles.map(v => v.driver).filter(Boolean)))
+  );
+  const uniqueVehicles = Array.from(
+    new Set(bookings.flatMap(b => b.vehicles.map(v => v.licensePlate)))
+  );
+  const uniqueCustomers = Array.from(
+    new Set(bookings.map(b => b.companyCode || b.customer))
+  );
 
   const filteredBookings = bookings.filter(booking => {
     const routeString = booking.routePoints.map(p => p.location).join(' → ');
@@ -165,11 +185,32 @@ export default function BookingList() {
       booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       booking.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (booking.companyCode && booking.companyCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (booking.groupCode && booking.groupCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
       routeString.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    const matchesGroupCode = !groupCodeFilter || 
+      (booking.groupCode && booking.groupCode.toLowerCase().includes(groupCodeFilter.toLowerCase()));
+    
+    const matchesDriver = !driverFilter ||
+      booking.vehicles.some(v => v.driver?.toLowerCase().includes(driverFilter.toLowerCase()));
+    
+    const matchesVehicle = !vehicleFilter ||
+      booking.vehicles.some(v => v.licensePlate?.toLowerCase().includes(vehicleFilter.toLowerCase()));
+    
+    const matchesCustomer = !customerFilter || 
+      (booking.companyCode || booking.customer).toLowerCase().includes(customerFilter.toLowerCase());
+    
+    const matchesStartDate = !startDateFilter ||
+      (booking.startDate && new Date(booking.startDate) >= new Date(startDateFilter));
+    
+    const matchesEndDate = !endDateFilter ||
+      (booking.endDate && new Date(booking.endDate) <= new Date(endDateFilter));
+    
+    return matchesSearch && matchesStatus && matchesGroupCode && matchesDriver && 
+           matchesVehicle && matchesCustomer && matchesStartDate && matchesEndDate;
   });
 
   const formatCurrency = (amount: number) => {
@@ -193,6 +234,50 @@ export default function BookingList() {
     setEditDialogOpen(true);
   };
 
+  const handlePrint = () => {
+    const printContent = printRef.current;
+    if (!printContent) return;
+
+    const printWindow = window.open('', '', 'width=800,height=600');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Danh sách Booking - ${format(new Date(), 'dd/MM/yyyy')}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { text-align: center; margin-bottom: 20px; }
+            .info { margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 12px; }
+            th { background-color: #f2f2f2; font-weight: bold; }
+            .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+            .status-pending { background-color: #fef3c7; }
+            .status-confirmed { background-color: #dbeafe; }
+            .status-in_progress { background-color: #d1fae5; }
+            .status-completed { background-color: #e0e7ff; }
+            .status-cancelled { background-color: #fee2e2; }
+            @media print {
+              body { margin: 0; }
+              button { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          ${printContent.innerHTML}
+          <script>
+            window.onload = function() {
+              window.print();
+              window.close();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -203,10 +288,16 @@ export default function BookingList() {
             Quản lý đặt chỗ và lịch trình vận chuyển
           </p>
         </div>
-        <Button onClick={() => navigate('/sales/bookings/create')}>
-          <Plus className="w-4 h-4 mr-2" />
-          Tạo booking mới
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handlePrint}>
+            <Printer className="w-4 h-4 mr-2" />
+            In danh sách
+          </Button>
+          <Button onClick={() => navigate('/sales/bookings/create')}>
+            <Plus className="w-4 h-4 mr-2" />
+            Tạo booking mới
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -238,12 +329,89 @@ export default function BookingList() {
                   <SelectItem value="cancelled">Đã hủy</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="outline">
+              <Button variant="outline" onClick={() => setShowFilters(!showFilters)}>
                 <Filter className="w-4 h-4 mr-2" />
-                Lọc nâng cao
+                {showFilters ? 'Ẩn bộ lọc' : 'Lọc nâng cao'}
               </Button>
             </div>
           </div>
+
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-4 mt-4 border-t">
+              <div>
+                <Label className="text-xs mb-1">Mã đoàn</Label>
+                <Input
+                  placeholder="Lọc theo mã đoàn"
+                  value={groupCodeFilter}
+                  onChange={(e) => setGroupCodeFilter(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1">Khách hàng</Label>
+                <Select value={customerFilter} onValueChange={setCustomerFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn khách hàng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Tất cả</SelectItem>
+                    {uniqueCustomers.map((customer) => (
+                      <SelectItem key={customer} value={customer}>
+                        {customer}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1">Lái xe</Label>
+                <Select value={driverFilter} onValueChange={setDriverFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn lái xe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Tất cả</SelectItem>
+                    {uniqueDrivers.map((driver) => (
+                      <SelectItem key={driver} value={driver || ''}>
+                        {driver}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1">Xe</Label>
+                <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn xe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Tất cả</SelectItem>
+                    {uniqueVehicles.map((vehicle) => (
+                      <SelectItem key={vehicle} value={vehicle}>
+                        {vehicle}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs mb-1">Ngày bắt đầu (từ)</Label>
+                <Input
+                  type="date"
+                  value={startDateFilter}
+                  onChange={(e) => setStartDateFilter(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label className="text-xs mb-1">Ngày kết thúc (đến)</Label>
+                <Input
+                  type="date"
+                  value={endDateFilter}
+                  onChange={(e) => setEndDateFilter(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -627,6 +795,71 @@ export default function BookingList() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Hidden print content */}
+      <div ref={printRef} style={{ display: 'none' }}>
+        <h1>Danh sách Booking</h1>
+        <div className="info">
+          <p><strong>Ngày in:</strong> {format(new Date(), 'dd/MM/yyyy HH:mm')}</p>
+          <p><strong>Tổng số booking:</strong> {filteredBookings.length}</p>
+          {groupCodeFilter && <p><strong>Mã đoàn:</strong> {groupCodeFilter}</p>}
+          {driverFilter && <p><strong>Lái xe:</strong> {driverFilter}</p>}
+          {vehicleFilter && <p><strong>Xe:</strong> {vehicleFilter}</p>}
+          {customerFilter && <p><strong>Khách hàng:</strong> {customerFilter}</p>}
+          {startDateFilter && <p><strong>Từ ngày:</strong> {format(new Date(startDateFilter), 'dd/MM/yyyy')}</p>}
+          {endDateFilter && <p><strong>Đến ngày:</strong> {format(new Date(endDateFilter), 'dd/MM/yyyy')}</p>}
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Mã Booking</th>
+              <th>Khách hàng</th>
+              <th>Mã đoàn</th>
+              <th>Lộ trình</th>
+              <th>Xe & Lái xe</th>
+              <th>Ngày</th>
+              <th>Trạng thái</th>
+              <th>Giá trị</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredBookings.map((booking) => (
+              <tr key={booking.id}>
+                <td>{booking.id}</td>
+                <td>
+                  {booking.companyCode || booking.customer}
+                </td>
+                <td>{booking.groupCode || '-'}</td>
+                <td>
+                  {booking.routePoints.map((point, idx) => (
+                    <div key={idx}>
+                      {point.location}
+                      {idx < booking.routePoints.length - 1 && ' → '}
+                    </div>
+                  ))}
+                </td>
+                <td>
+                  {booking.vehicles.map((vehicle, idx) => (
+                    <div key={idx}>
+                      {vehicle.licensePlate} - {vehicle.driver || 'Chưa có lái xe'}
+                    </div>
+                  ))}
+                </td>
+                <td>
+                  {booking.startDate && format(new Date(booking.startDate), 'dd/MM/yyyy')}
+                  {booking.endDate && ` - ${format(new Date(booking.endDate), 'dd/MM/yyyy')}`}
+                </td>
+                <td>
+                  <span className={`status-badge status-${booking.status}`}>
+                    {statusConfig[booking.status as keyof typeof statusConfig].label}
+                  </span>
+                </td>
+                <td>{formatCurrency(booking.value)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
