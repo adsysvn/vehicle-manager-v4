@@ -46,6 +46,7 @@ const menuItems = [
     submenu: [
       { title: 'Danh sách booking', href: '/sales/bookings', icon: FileText },
       { title: 'Quản lý hợp đồng', href: '/sales/contracts', icon: FileText },
+      { title: 'Quản lý hành trình', href: '/sales/routes', icon: MapPin },
       { title: 'Bảng giá theo Km', href: '/transport/pricing', icon: CreditCard },
       { title: 'Chăm sóc khách hàng', href: '/sales/customer-care', icon: Users },
       { title: 'Quản lý khách hàng', href: '/sales/customers', icon: Users },

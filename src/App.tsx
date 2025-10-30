@@ -67,6 +67,7 @@ import OperationsPermissions from "./pages/security/OperationsPermissions";
 import MeetingRoomBooking from "./pages/requests/MeetingRoomBooking";
 import BusinessTripManagement from "./pages/requests/BusinessTripManagement";
 import OfficeShopping from "./pages/requests/OfficeShopping";
+import RouteManagement from "./pages/sales/RouteManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -90,6 +91,7 @@ const App = () => (
             {/* Sales Routes */}
             <Route path="sales/bookings" element={<BookingList />} />
             <Route path="sales/bookings/create" element={<BookingCreate />} />
+            <Route path="sales/routes" element={<RouteManagement />} />
             <Route path="sales/contracts" element={<ContractManager />} />
             <Route path="sales/contracts/create" element={<ContractCreate />} />
             <Route path="sales/customer-care" element={<CustomerCare />} />

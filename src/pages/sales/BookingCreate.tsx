@@ -68,6 +68,51 @@ export default function BookingCreate() {
   const [additionalKm, setAdditionalKm] = useState('0');
   const [additionalServices, setAdditionalServices] = useState('');
 
+  // Route and pricing
+  const [selectedRoute, setSelectedRoute] = useState('');
+  const [routeDistance, setRouteDistance] = useState('0');
+  const [pricePerKm, setPricePerKm] = useState('0');
+  const [totalPrice, setTotalPrice] = useState('0');
+
+  // Mock routes data
+  const availableRoutes = [
+    { id: 'RT001', name: 'HCM - Vũng Tàu', distance: 125 },
+    { id: 'RT002', name: 'HCM - Đà Lạt', distance: 308 },
+    { id: 'RT003', name: 'HCM - Phan Thiết', distance: 200 },
+    { id: 'RT004', name: 'Hà Nội - Hạ Long', distance: 165 },
+    { id: 'RT005', name: 'Hà Nội - Sapa', distance: 315 }
+  ];
+
+  // Mock pricing data - kế thừa từ bảng giá
+  const customerPricing = [
+    { customerId: 'COMP001', customerName: 'Công ty TNHH ABC', routeId: 'RT001', vehicleType: '7 chỗ', pricePerKm: 10000, basePrice: 400000 },
+    { customerId: 'COMP001', customerName: 'Công ty TNHH ABC', routeId: 'RT003', vehicleType: '7 chỗ', pricePerKm: 10000, basePrice: 400000 },
+    { customerId: 'COMP002', customerName: 'Công ty CP XYZ', routeId: 'RT002', vehicleType: '4 chỗ', pricePerKm: 8500, basePrice: 320000 }
+  ];
+
+  // Handle route selection
+  const handleRouteChange = (routeId: string) => {
+    setSelectedRoute(routeId);
+    const route = availableRoutes.find(r => r.id === routeId);
+    if (route) {
+      setRouteDistance(route.distance.toString());
+      
+      // Auto-fill pricing if customer and route match
+      const pricing = customerPricing.find(p => 
+        p.customerName === customerName && p.routeId === routeId
+      );
+      if (pricing) {
+        setPricePerKm(pricing.pricePerKm.toString());
+        const total = pricing.basePrice + (route.distance * pricing.pricePerKm);
+        setTotalPrice(total.toString());
+        toast({
+          title: 'Đã áp dụng bảng giá',
+          description: `Áp dụng giá ${pricing.pricePerKm.toLocaleString()}đ/km cho ${route.name}`
+        });
+      }
+    }
+  };
+
   const [routePoints, setRoutePoints] = useState<RoutePoint[]>([
     { id: '1', location: '', date: '', time: '' },
     { id: '2', location: '', date: '', time: '' }
@@ -447,6 +492,56 @@ export default function BookingCreate() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Select predefined route */}
+            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Chọn hành trình có sẵn</Label>
+                  <Select value={selectedRoute} onValueChange={handleRouteChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn hành trình..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableRoutes.map((route) => (
+                        <SelectItem key={route.id} value={route.id}>
+                          {route.name} ({route.distance} km)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Số km</Label>
+                  <Input
+                    type="number"
+                    value={routeDistance}
+                    onChange={(e) => setRouteDistance(e.target.value)}
+                    placeholder="0"
+                    readOnly={!!selectedRoute}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Đơn giá/km</Label>
+                  <Input
+                    type="number"
+                    value={pricePerKm}
+                    onChange={(e) => setPricePerKm(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+              {totalPrice && parseFloat(totalPrice) > 0 && (
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Tổng giá ước tính:</span>
+                    <span className="text-lg font-bold text-primary">
+                      {parseFloat(totalPrice).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
               <div className="space-y-2">
                 <Label>Ngày bắt đầu *</Label>

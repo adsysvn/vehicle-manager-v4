@@ -14,9 +14,12 @@ interface VehiclePricing {
   vehicleType: string;
   companyId: string;
   companyName: string;
+  routeId?: string;
+  routeName?: string;
   basePrice: number;
   pricePerKm: number;
   minKm: number;
+  distance?: number; // km cho hành trình cụ thể
   pricePerHour: number;
   nightSurcharge: number;
   holidaySurcharge: number;
@@ -30,9 +33,12 @@ const mockPricing: VehiclePricing[] = [
     vehicleType: '4 chỗ',
     companyId: 'COMP001',
     companyName: 'Công ty TNHH ABC',
+    routeId: 'RT001',
+    routeName: 'HCM - Vũng Tàu',
     basePrice: 300000,
     pricePerKm: 8000,
     minKm: 20,
+    distance: 125,
     pricePerHour: 150000,
     nightSurcharge: 20,
     holidaySurcharge: 30,
@@ -44,9 +50,12 @@ const mockPricing: VehiclePricing[] = [
     vehicleType: '7 chỗ',
     companyId: 'COMP001',
     companyName: 'Công ty TNHH ABC',
+    routeId: 'RT001',
+    routeName: 'HCM - Vũng Tàu',
     basePrice: 400000,
     pricePerKm: 10000,
     minKm: 20,
+    distance: 125,
     pricePerHour: 180000,
     nightSurcharge: 20,
     holidaySurcharge: 30,
@@ -58,9 +67,12 @@ const mockPricing: VehiclePricing[] = [
     vehicleType: '4 chỗ',
     companyId: 'COMP002',
     companyName: 'Công ty CP XYZ',
+    routeId: 'RT002',
+    routeName: 'HCM - Đà Lạt',
     basePrice: 320000,
     pricePerKm: 8500,
     minKm: 20,
+    distance: 308,
     pricePerHour: 160000,
     nightSurcharge: 25,
     holidaySurcharge: 35,
@@ -72,10 +84,30 @@ const mockPricing: VehiclePricing[] = [
     vehicleType: '16 chỗ',
     companyId: 'COMP001',
     companyName: 'Công ty TNHH ABC',
+    routeId: 'RT001',
+    routeName: 'HCM - Vũng Tàu',
     basePrice: 600000,
     pricePerKm: 12000,
     minKm: 30,
+    distance: 125,
     pricePerHour: 250000,
+    nightSurcharge: 20,
+    holidaySurcharge: 30,
+    effectiveDate: '2024-01-01',
+    status: 'active'
+  },
+  {
+    id: 'PRICE005',
+    vehicleType: '7 chỗ',
+    companyId: 'COMP001',
+    companyName: 'Công ty TNHH ABC',
+    routeId: 'RT003',
+    routeName: 'HCM - Phan Thiết',
+    basePrice: 400000,
+    pricePerKm: 10000,
+    minKm: 20,
+    distance: 200,
+    pricePerHour: 180000,
     nightSurcharge: 20,
     holidaySurcharge: 30,
     effectiveDate: '2024-01-01',
@@ -253,11 +285,12 @@ export default function PricingPerKm() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Công ty</TableHead>
+                  <TableHead>Hành trình</TableHead>
                   <TableHead>Loại xe</TableHead>
+                  <TableHead>Số km</TableHead>
                   <TableHead>Khởi điểm</TableHead>
                   <TableHead>Giá/Km</TableHead>
-                  <TableHead>Giá/Giờ</TableHead>
-                  <TableHead>Phụ phí</TableHead>
+                  <TableHead>Tổng</TableHead>
                   <TableHead>Hành động</TableHead>
                 </TableRow>
               </TableHeader>
@@ -265,15 +298,25 @@ export default function PricingPerKm() {
                 {pricing.filter(p => filterCompany === 'all' || p.companyId === filterCompany).map((price) => (
                   <TableRow key={price.id}>
                     <TableCell className="text-sm">{price.companyName}</TableCell>
+                    <TableCell>
+                      {price.routeName ? (
+                        <Badge variant="secondary">{price.routeName}</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Chung</span>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{price.vehicleType}</TableCell>
+                    <TableCell>
+                      {price.distance ? (
+                        <Badge>{price.distance} km</Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      )}
+                    </TableCell>
                     <TableCell>{formatCurrency(price.basePrice)}</TableCell>
                     <TableCell>{formatCurrency(price.pricePerKm)}</TableCell>
-                    <TableCell>{formatCurrency(price.pricePerHour)}</TableCell>
-                    <TableCell>
-                      <div className="text-xs">
-                        <p>Đêm: +{price.nightSurcharge}%</p>
-                        <p>Lễ: +{price.holidaySurcharge}%</p>
-                      </div>
+                    <TableCell className="font-medium">
+                      {price.distance ? formatCurrency(price.basePrice + (price.distance * price.pricePerKm)) : '-'}
                     </TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm">
