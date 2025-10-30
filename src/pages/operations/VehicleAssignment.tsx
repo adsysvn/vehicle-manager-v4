@@ -175,10 +175,82 @@ export default function VehicleAssignment() {
   const currentTrip = pendingTrips.find(t => t.id === selectedTrip);
   const isMultiPoint = currentTrip && currentTrip.routePoints.length > 2;
 
+  // Helper function to check if two date ranges overlap
+  const isDateRangeOverlap = (start1: string, end1: string, start2: string, end2: string) => {
+    const s1 = new Date(start1).getTime();
+    const e1 = new Date(end1).getTime();
+    const s2 = new Date(start2).getTime();
+    const e2 = new Date(end2).getTime();
+    return s1 <= e2 && s2 <= e1;
+  };
+
+  // Get occupied vehicles for the current trip's date range
+  const getOccupiedVehicles = () => {
+    if (!currentTrip) return [];
+    const occupied: string[] = [];
+    
+    pendingTrips.forEach(trip => {
+      if (trip.id === currentTrip.id) return; // Skip current trip
+      
+      // Check if date ranges overlap
+      if (isDateRangeOverlap(currentTrip.startDate, currentTrip.endDate, trip.startDate, trip.endDate)) {
+        // Add all assigned vehicles from this trip
+        Object.values(trip.assignedVehicles).forEach(vehicleId => {
+          if (vehicleId && !occupied.includes(vehicleId)) {
+            occupied.push(vehicleId);
+          }
+        });
+      }
+    });
+    
+    return occupied;
+  };
+
+  // Get occupied drivers for the current trip's date range
+  const getOccupiedDrivers = () => {
+    if (!currentTrip) return [];
+    const occupied: string[] = [];
+    
+    pendingTrips.forEach(trip => {
+      if (trip.id === currentTrip.id) return; // Skip current trip
+      
+      // Check if date ranges overlap
+      if (isDateRangeOverlap(currentTrip.startDate, currentTrip.endDate, trip.startDate, trip.endDate)) {
+        // Add all assigned drivers from this trip
+        Object.values(trip.assignedDrivers).forEach(driverId => {
+          if (driverId && !occupied.includes(driverId)) {
+            occupied.push(driverId);
+          }
+        });
+      }
+    });
+    
+    return occupied;
+  };
+
+  const occupiedVehicles = getOccupiedVehicles();
+  const occupiedDrivers = getOccupiedDrivers();
+
   const filteredVehicles = vehicles.filter(v => {
+    // Must be available status
     if (v.status !== 'available') return false;
+    
+    // Must not be occupied by another booking in the same date range
+    if (occupiedVehicles.includes(v.id)) return false;
+    
+    // Apply vehicle type filter
     if (vehicleFilter === 'all') return true;
     return v.type === vehicleFilter;
+  });
+
+  const availableDrivers = drivers.filter(d => {
+    // Must be available status
+    if (d.status !== 'available') return false;
+    
+    // Must not be occupied by another booking in the same date range
+    if (occupiedDrivers.includes(d.id)) return false;
+    
+    return true;
   });
 
   const handlePointVehicleChange = (pointIndex: number, vehicleId: string) => {
@@ -423,7 +495,7 @@ export default function VehicleAssignment() {
                               <SelectValue placeholder="Chọn lái xe" />
                             </SelectTrigger>
                             <SelectContent>
-                              {drivers.filter(d => d.status === 'available').map((driver) => (
+                              {availableDrivers.map((driver) => (
                                 <SelectItem key={driver.id} value={driver.id}>
                                   {driver.name} - {driver.license}
                                 </SelectItem>
