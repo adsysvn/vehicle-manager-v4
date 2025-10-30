@@ -99,7 +99,10 @@ const pendingTrips = [
     ],
     startTime: '08:00',
     date: '2024-01-15',
-    vehicleType: '45 chỗ',
+    requiredVehicles: [
+      { id: 1, type: '45 chỗ', notes: 'Xe đời mới, có wifi' },
+      { id: 2, type: '16 chỗ', notes: 'Xe cho hành lý' }
+    ],
     passengers: 40,
     priority: 'high',
     notes: 'Khách VIP, cần xe đời mới',
@@ -108,7 +111,8 @@ const pendingTrips = [
       { name: 'Khăn lạnh', quantity: 40 }
     ],
     assignedVehicles: {} as Record<number, string>,
-    assignedDrivers: {} as Record<number, string>
+    assignedDrivers: {} as Record<number, string>,
+    assignedBy: null
   },
   {
     id: 'T002',
@@ -133,13 +137,16 @@ const pendingTrips = [
     ],
     startTime: '14:30',
     date: '2024-01-15',
-    vehicleType: '29 chỗ',
+    requiredVehicles: [
+      { id: 1, type: '29 chỗ', notes: '' }
+    ],
     passengers: 25,
     priority: 'medium',
     notes: 'Chuyến đi theo lịch trình cố định hàng tuần',
     services: [],
     assignedVehicles: {} as Record<number, string>,
-    assignedDrivers: {} as Record<number, string>
+    assignedDrivers: {} as Record<number, string>,
+    assignedBy: null
   }
 ];
 
@@ -158,6 +165,8 @@ export default function VehicleAssignment() {
   const [vehicleFilter, setVehicleFilter] = useState<string>('all');
   const [pointVehicles, setPointVehicles] = useState<Record<number, string>>({});
   const [pointDrivers, setPointDrivers] = useState<Record<number, string>>({});
+  const [vehicleAssignments, setVehicleAssignments] = useState<Record<number, string>>({});
+  const [driverAssignments, setDriverAssignments] = useState<Record<number, string>>({});
 
   const currentTrip = pendingTrips.find(t => t.id === selectedTrip);
   const isMultiPoint = currentTrip && currentTrip.routePoints.length > 2;
@@ -179,6 +188,20 @@ export default function VehicleAssignment() {
     setPointDrivers(prev => ({
       ...prev,
       [pointIndex]: driverId
+    }));
+  };
+
+  const handleVehicleAssignment = (vehicleIndex: number, vehicleId: string) => {
+    setVehicleAssignments(prev => ({
+      ...prev,
+      [vehicleIndex]: vehicleId
+    }));
+  };
+
+  const handleDriverAssignment = (vehicleIndex: number, driverId: string) => {
+    setDriverAssignments(prev => ({
+      ...prev,
+      [vehicleIndex]: driverId
     }));
   };
 
@@ -248,16 +271,12 @@ export default function VehicleAssignment() {
                     <label className="text-xs text-muted-foreground">Số khách</label>
                     <p className="font-medium">{currentTrip?.numAdults} người</p>
                   </div>
-                  {currentTrip?.numChildren > 0 && (
+                   {currentTrip?.numChildren > 0 && (
                     <div>
                       <label className="text-xs text-muted-foreground">Em bé</label>
                       <p className="font-medium">{currentTrip?.numChildren}</p>
                     </div>
                   )}
-                  <div>
-                    <label className="text-xs text-muted-foreground">Dòng xe yêu cầu</label>
-                    <p className="font-medium">{currentTrip?.vehicleType}</p>
-                  </div>
                   {currentTrip?.tourGuideName && (
                     <>
                       <div>
@@ -278,6 +297,12 @@ export default function VehicleAssignment() {
                     <label className="text-xs text-muted-foreground">Ngày kết thúc</label>
                     <p className="font-medium">{currentTrip?.endDate}</p>
                   </div>
+                  {currentTrip?.assignedBy && (
+                    <div>
+                      <label className="text-xs text-muted-foreground">Điều hành sắp xếp</label>
+                      <p className="font-medium text-primary">{currentTrip.assignedBy}</p>
+                    </div>
+                  )}
                   {currentTrip?.notes && (
                     <div className="col-span-3">
                       <label className="text-xs text-muted-foreground">Ghi chú</label>
@@ -299,7 +324,94 @@ export default function VehicleAssignment() {
                 </div>
               </div>
 
-              {isMultiPoint ? (
+              {/* Vehicle assignments from booking */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">
+                    Phân xe & lái xe (Kế thừa từ booking: {currentTrip?.requiredVehicles.length} xe)
+                  </label>
+                  <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
+                    <SelectTrigger className="w-48">
+                      <SelectValue placeholder="Lọc theo dòng xe" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tất cả xe</SelectItem>
+                      <SelectItem value="4 chỗ">4 chỗ</SelectItem>
+                      <SelectItem value="7 chỗ">7 chỗ</SelectItem>
+                      <SelectItem value="16 chỗ">16 chỗ</SelectItem>
+                      <SelectItem value="29 chỗ">29 chỗ</SelectItem>
+                      <SelectItem value="35 chỗ">35 chỗ</SelectItem>
+                      <SelectItem value="45 chỗ">45 chỗ</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-3">
+                  {currentTrip?.requiredVehicles.map((reqVehicle, index) => (
+                    <div key={reqVehicle.id} className="p-4 bg-muted/50 rounded-lg space-y-3 border border-border">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-sm">Xe {index + 1}</Badge>
+                          <Badge variant="secondary">{reqVehicle.type}</Badge>
+                        </div>
+                        {reqVehicle.notes && (
+                          <span className="text-xs text-muted-foreground">{reqVehicle.notes}</span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <Car className="w-4 h-4" />
+                            Chọn xe {reqVehicle.type}
+                          </label>
+                          <Select 
+                            value={vehicleAssignments[index] || ''} 
+                            onValueChange={(value) => handleVehicleAssignment(index, value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder={`Chọn xe ${reqVehicle.type}`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {filteredVehicles
+                                .filter(v => vehicleFilter === 'all' || v.type.includes(reqVehicle.type.split(' ')[0]))
+                                .map((vehicle) => (
+                                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                                    {vehicle.license} - {vehicle.type}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            Chọn lái xe
+                          </label>
+                          <Select 
+                            value={driverAssignments[index] || ''} 
+                            onValueChange={(value) => handleDriverAssignment(index, value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Chọn lái xe" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {drivers.filter(d => d.status === 'available').map((driver) => (
+                                <SelectItem key={driver.id} value={driver.id}>
+                                  {driver.name} - {driver.license}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  💡 Số lượng và loại xe được kế thừa từ booking. Vui lòng chọn xe và lái xe cho từng xe.
+                </p>
+              </div>
+
+              {isMultiPoint && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-medium">Hành trình đa điểm - Phân xe & lái xe cho từng chặng</label>
@@ -407,35 +519,6 @@ export default function VehicleAssignment() {
                     💡 Có thể chọn xe và lái xe khác nhau cho mỗi chặng hoặc giữ nguyên cho cả hành trình
                   </p>
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-sm font-medium">Xe được chọn</label>
-                      <Select value={vehicleFilter} onValueChange={setVehicleFilter}>
-                        <SelectTrigger className="w-48">
-                          <SelectValue placeholder="Lọc theo dòng xe" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Tất cả xe</SelectItem>
-                          <SelectItem value="7 chỗ">7 chỗ</SelectItem>
-                          <SelectItem value="16 chỗ">16 chỗ</SelectItem>
-                          <SelectItem value="29 chỗ">29 chỗ</SelectItem>
-                          <SelectItem value="45 chỗ">45 chỗ</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="p-3 bg-muted rounded-lg">
-                      {selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.license : 'Chưa chọn'}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Lái xe được chọn</label>
-                    <div className="p-3 bg-muted rounded-lg">
-                      {selectedDriver ? drivers.find(d => d.id === selectedDriver)?.name : 'Chưa chọn'}
-                    </div>
-                  </div>
-                </div>
               )}
             </div>
             <div className="flex justify-end space-x-2 mt-4">
@@ -445,6 +528,8 @@ export default function VehicleAssignment() {
                 setSelectedDriver(null);
                 setPointVehicles({});
                 setPointDrivers({});
+                setVehicleAssignments({});
+                setDriverAssignments({});
                 setVehicleFilter('all');
               }}>
                 Hủy
@@ -454,7 +539,8 @@ export default function VehicleAssignment() {
                 disabled={
                   isMultiPoint 
                     ? Object.keys(pointVehicles).length === 0 || Object.keys(pointDrivers).length === 0
-                    : !selectedVehicle || !selectedDriver
+                    : Object.keys(vehicleAssignments).length !== currentTrip?.requiredVehicles.length ||
+                      Object.keys(driverAssignments).length !== currentTrip?.requiredVehicles.length
                 }
               >
                 Xác nhận phân công
@@ -518,7 +604,14 @@ export default function VehicleAssignment() {
                     <Clock className="w-4 h-4" />
                     <span>{trip.date} - {trip.startTime}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground mt-1">Dòng xe: {trip.vehicleType}</p>
+                  <div className="mt-2 space-y-1">
+                    <p className="text-xs text-muted-foreground font-medium">Xe yêu cầu:</p>
+                    {trip.requiredVehicles.map((vehicle, idx) => (
+                      <Badge key={idx} variant="secondary" className="mr-1">
+                        {vehicle.type}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
