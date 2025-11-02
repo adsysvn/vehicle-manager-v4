@@ -1,1 +1,4 @@
 project_id = "djlmliplkmxqsjkdbczp"
+
+[functions.seed-sample-data]
+verify_jwt = false
