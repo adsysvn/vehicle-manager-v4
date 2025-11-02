@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,39 +9,163 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Package, ShoppingCart, DollarSign, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const OfficeShopping = () => {
-  const [requests, setRequests] = useState([
-    {
-      id: 1,
-      requester: 'Nguyễn Văn A',
-      department: 'Hành chính',
-      items: [
-        { name: 'Giấy A4', quantity: 10, unit: 'Ream', unitPrice: 80000 },
-        { name: 'Bút bi', quantity: 50, unit: 'Cái', unitPrice: 3000 }
-      ],
-      totalAmount: 950000,
-      status: 'approved',
-      requestDate: '2025-10-20',
-      purpose: 'Văn phòng phẩm tháng 10'
-    },
-    {
-      id: 2,
-      requester: 'Trần Thị B',
-      department: 'Kế toán',
-      items: [
-        { name: 'Mực in', quantity: 5, unit: 'Hộp', unitPrice: 350000 },
-        { name: 'Kẹp tài liệu', quantity: 20, unit: 'Cái', unitPrice: 15000 }
-      ],
-      totalAmount: 2050000,
-      status: 'pending',
-      requestDate: '2025-10-22',
-      purpose: 'Mua sắm thiết bị văn phòng'
-    }
-  ]);
-
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState([{ name: '', quantity: 1, unit: '', unitPrice: 0 }]);
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    purpose: '',
+    notes: ''
+  });
+  const [items, setItems] = useState([{ item_name: '', quantity: 1, unit: '', unit_price: 0 }]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('shopping_requests')
+        .select(`
+          *,
+          profile:profiles!shopping_requests_profile_id_fkey(full_name, email),
+          department:departments(name),
+          items:shopping_request_items(*)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setRequests(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Chưa đăng nhập');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('department_id')
+        .eq('id', user.id)
+        .single();
+
+      const totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+
+      const { data: request, error: requestError } = await supabase
+        .from('shopping_requests')
+        .insert([{
+          profile_id: user.id,
+          department_id: profile?.department_id || null,
+          purpose: formData.purpose,
+          total_amount: totalAmount,
+          notes: formData.notes
+        }])
+        .select()
+        .single();
+
+      if (requestError) throw requestError;
+
+      const itemsToInsert = items.map(item => ({
+        request_id: request.id,
+        item_name: item.item_name,
+        quantity: item.quantity,
+        unit: item.unit,
+        unit_price: item.unit_price
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('shopping_request_items')
+        .insert(itemsToInsert);
+
+      if (itemsError) throw itemsError;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo yêu cầu mua sắm'
+      });
+      
+      setOpen(false);
+      fetchRequests();
+      setFormData({ purpose: '', notes: '' });
+      setItems([{ item_name: '', quantity: 1, unit: '', unit_price: 0 }]);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('shopping_requests')
+        .update({
+          status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã duyệt yêu cầu'
+      });
+      fetchRequests();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('shopping_requests')
+        .update({
+          status: 'rejected',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã từ chối yêu cầu'
+      });
+      fetchRequests();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -61,11 +185,17 @@ const OfficeShopping = () => {
   };
 
   const addItem = () => {
-    setItems([...items, { name: '', quantity: 1, unit: '', unitPrice: 0 }]);
+    setItems([...items, { item_name: '', quantity: 1, unit: '', unit_price: 0 }]);
   };
 
   const removeItem = (index: number) => {
     setItems(items.filter((_, i) => i !== index));
+  };
+
+  const updateItem = (index: number, field: string, value: any) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    setItems(newItems);
   };
 
   return (
@@ -89,31 +219,14 @@ const OfficeShopping = () => {
               <DialogTitle>Yêu cầu mua sắm văn phòng phẩm</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Người yêu cầu</Label>
-                  <Input placeholder="Tên người yêu cầu" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phòng ban</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn phòng ban" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Hành chính</SelectItem>
-                      <SelectItem value="sales">Kinh doanh</SelectItem>
-                      <SelectItem value="accounting">Kế toán</SelectItem>
-                      <SelectItem value="hrm">Nhân sự</SelectItem>
-                      <SelectItem value="operations">Điều hành</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
               <div className="space-y-2">
                 <Label>Mục đích mua sắm</Label>
-                <Textarea placeholder="Mô tả mục đích và lý do mua sắm" rows={2} />
+                <Textarea 
+                  placeholder="Mô tả mục đích và lý do mua sắm" 
+                  rows={2} 
+                  value={formData.purpose}
+                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                />
               </div>
 
               <div className="space-y-4">
@@ -143,11 +256,15 @@ const OfficeShopping = () => {
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-2">
                         <Label className="text-sm">Tên vật phẩm</Label>
-                        <Input placeholder="Ví dụ: Giấy A4, Bút bi..." />
+                        <Input 
+                          placeholder="Ví dụ: Giấy A4, Bút bi..." 
+                          value={item.item_name}
+                          onChange={(e) => updateItem(index, 'item_name', e.target.value)}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm">Đơn vị tính</Label>
-                        <Select>
+                        <Select value={item.unit} onValueChange={(v) => updateItem(index, 'unit', v)}>
                           <SelectTrigger>
                             <SelectValue placeholder="Chọn đơn vị" />
                           </SelectTrigger>
@@ -162,27 +279,56 @@ const OfficeShopping = () => {
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm">Số lượng</Label>
-                        <Input type="number" min="1" placeholder="0" />
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          placeholder="0" 
+                          value={item.quantity}
+                          onChange={(e) => updateItem(index, 'quantity', Number(e.target.value))}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label className="text-sm">Đơn giá (VND)</Label>
-                        <Input type="number" min="0" placeholder="0" />
+                        <Input 
+                          type="number" 
+                          min="0" 
+                          placeholder="0" 
+                          value={item.unit_price}
+                          onChange={(e) => updateItem(index, 'unit_price', Number(e.target.value))}
+                        />
                       </div>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Thành tiền: {formatCurrency(item.quantity * item.unit_price)}
                     </div>
                   </div>
                 ))}
+
+                <div className="pt-2 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold">Tổng giá trị:</span>
+                    <span className="text-xl font-bold">
+                      {formatCurrency(items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0))}
+                    </span>
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Ghi chú</Label>
-                <Textarea placeholder="Thông tin bổ sung về yêu cầu" rows={2} />
+                <Textarea 
+                  placeholder="Thông tin bổ sung về yêu cầu" 
+                  rows={2} 
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                />
               </div>
 
               <div className="flex justify-end space-x-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setOpen(false)}>
                   Hủy
                 </Button>
-                <Button onClick={() => setOpen(false)}>
+                <Button onClick={handleSubmit}>
                   Gửi yêu cầu
                 </Button>
               </div>
@@ -227,7 +373,7 @@ const OfficeShopping = () => {
               {formatCurrency(
                 requests
                   .filter(r => r.status === 'approved')
-                  .reduce((sum, r) => sum + r.totalAmount, 0)
+                  .reduce((sum, r) => sum + Number(r.total_amount), 0)
               )}
             </div>
             <p className="text-xs text-muted-foreground">Tổng đã duyệt</p>
@@ -265,27 +411,37 @@ const OfficeShopping = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {requests.map((request) => (
-                <TableRow key={request.id}>
-                  <TableCell className="font-medium">{request.requester}</TableCell>
-                  <TableCell>{request.department}</TableCell>
-                  <TableCell>{request.requestDate}</TableCell>
-                  <TableCell>{request.items.length} vật phẩm</TableCell>
-                  <TableCell>{formatCurrency(request.totalAmount)}</TableCell>
-                  <TableCell>{getStatusBadge(request.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">Chi tiết</Button>
-                      {request.status === 'pending' && (
-                        <>
-                          <Button variant="default" size="sm">Duyệt</Button>
-                          <Button variant="destructive" size="sm">Từ chối</Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">Đang tải...</TableCell>
                 </TableRow>
-              ))}
+              ) : requests.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">Chưa có yêu cầu mua sắm nào</TableCell>
+                </TableRow>
+              ) : (
+                requests.map((request) => (
+                  <TableRow key={request.id}>
+                    <TableCell className="font-medium">{request.profile?.full_name}</TableCell>
+                    <TableCell>{request.department?.name || 'N/A'}</TableCell>
+                    <TableCell>{new Date(request.created_at).toLocaleDateString('vi-VN')}</TableCell>
+                    <TableCell>{request.items?.length || 0} vật phẩm</TableCell>
+                    <TableCell>{formatCurrency(Number(request.total_amount))}</TableCell>
+                    <TableCell>{getStatusBadge(request.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">Chi tiết</Button>
+                        {request.status === 'pending' && (
+                          <>
+                            <Button variant="default" size="sm" onClick={() => handleApprove(request.id)}>Duyệt</Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleReject(request.id)}>Từ chối</Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

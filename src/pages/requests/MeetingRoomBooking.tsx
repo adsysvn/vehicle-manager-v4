@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,38 +9,178 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Calendar, Clock, Users, MapPin } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const MeetingRoomBooking = () => {
-  const [bookings, setBookings] = useState([
-    {
-      id: 1,
-      roomName: 'Phòng họp A',
-      requester: 'Nguyễn Văn A',
-      department: 'Kinh doanh',
-      date: '2025-10-25',
-      timeStart: '09:00',
-      timeEnd: '11:00',
-      participants: 15,
-      purpose: 'Họp tổng kết quý',
-      status: 'approved',
-      equipment: ['Projector', 'Wifi', 'Whiteboard']
-    },
-    {
-      id: 2,
-      roomName: 'Phòng họp B',
-      requester: 'Trần Thị B',
-      department: 'Nhân sự',
-      date: '2025-10-26',
-      timeStart: '14:00',
-      timeEnd: '16:00',
-      participants: 8,
-      purpose: 'Phỏng vấn tuyển dụng',
-      status: 'pending',
-      equipment: ['Wifi', 'TV']
-    }
-  ]);
-
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    room_id: '',
+    booking_date: '',
+    time_start: '',
+    time_end: '',
+    participants: 1,
+    purpose: '',
+    equipment: [] as string[],
+    notes: ''
+  });
+
+  useEffect(() => {
+    fetchBookings();
+    fetchRooms();
+    fetchDepartments();
+  }, []);
+
+  const fetchBookings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('meeting_room_bookings')
+        .select(`
+          *,
+          room:meeting_rooms(name, capacity),
+          profile:profiles!meeting_room_bookings_profile_id_fkey(full_name, email),
+          department:departments(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setBookings(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRooms = async () => {
+    const { data } = await supabase
+      .from('meeting_rooms')
+      .select('*')
+      .eq('is_active', true);
+    setRooms(data || []);
+  };
+
+  const fetchDepartments = async () => {
+    const { data } = await supabase.from('departments').select('*');
+    setDepartments(data || []);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Chưa đăng nhập');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('department_id')
+        .eq('id', user.id)
+        .single();
+
+      const { error } = await supabase.from('meeting_room_bookings').insert([{
+        room_id: formData.room_id,
+        profile_id: user.id,
+        department_id: profile?.department_id || null,
+        booking_date: formData.booking_date,
+        time_start: formData.time_start,
+        time_end: formData.time_end,
+        participants: formData.participants,
+        purpose: formData.purpose,
+        equipment: formData.equipment,
+        notes: formData.notes
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo yêu cầu đặt phòng'
+      });
+      
+      setOpen(false);
+      fetchBookings();
+      setFormData({
+        room_id: '',
+        booking_date: '',
+        time_start: '',
+        time_end: '',
+        participants: 1,
+        purpose: '',
+        equipment: [],
+        notes: ''
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('meeting_room_bookings')
+        .update({
+          status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã duyệt yêu cầu'
+      });
+      fetchBookings();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('meeting_room_bookings')
+        .update({
+          status: 'rejected',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã từ chối yêu cầu'
+      });
+      fetchBookings();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -79,96 +219,89 @@ const MeetingRoomBooking = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Phòng họp</Label>
-                  <Select>
+                  <Select value={formData.room_id} onValueChange={(v) => setFormData({...formData, room_id: v})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn phòng họp" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="room-a">Phòng họp A (20 người)</SelectItem>
-                      <SelectItem value="room-b">Phòng họp B (10 người)</SelectItem>
-                      <SelectItem value="room-c">Phòng họp C (30 người)</SelectItem>
-                      <SelectItem value="room-d">Phòng họp D (50 người)</SelectItem>
+                      {rooms.map(room => (
+                        <SelectItem key={room.id} value={room.id}>
+                          {room.name} ({room.capacity} người)
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Phòng ban</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn phòng ban" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sales">Kinh doanh</SelectItem>
-                      <SelectItem value="hrm">Nhân sự</SelectItem>
-                      <SelectItem value="accounting">Kế toán</SelectItem>
-                      <SelectItem value="operations">Điều hành</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Số lượng người tham dự</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="Nhập số người" 
+                    value={formData.participants}
+                    onChange={(e) => setFormData({...formData, participants: Number(e.target.value)})}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Ngày họp</Label>
-                  <Input type="date" />
+                  <Input 
+                    type="date" 
+                    value={formData.booking_date}
+                    onChange={(e) => setFormData({...formData, booking_date: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Số lượng người tham dự</Label>
-                  <Input type="number" placeholder="Nhập số người" />
+                  <Label>Giờ bắt đầu</Label>
+                  <Input 
+                    type="time" 
+                    value={formData.time_start}
+                    onChange={(e) => setFormData({...formData, time_start: e.target.value})}
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Giờ bắt đầu</Label>
-                  <Input type="time" />
+                  <Label>Giờ kết thúc</Label>
+                  <Input 
+                    type="time" 
+                    value={formData.time_end}
+                    onChange={(e) => setFormData({...formData, time_end: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Giờ kết thúc</Label>
-                  <Input type="time" />
+                  <Label>&nbsp;</Label>
+                  <div></div>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Mục đích sử dụng</Label>
-                <Textarea placeholder="Mô tả mục đích sử dụng phòng họp" rows={3} />
+                <Textarea 
+                  placeholder="Mô tả mục đích sử dụng phòng họp" 
+                  rows={3} 
+                  value={formData.purpose}
+                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                />
               </div>
 
               <div className="space-y-2">
-                <Label>Thiết bị cần thiết</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="flex items-center space-x-2">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm">Máy chiếu</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm">Wifi</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm">Bảng trắng</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm">TV/Monitor</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm">Micro</span>
-                  </label>
-                  <label className="flex items-center space-x-2">
-                    <input type="checkbox" className="rounded" />
-                    <span className="text-sm">Hệ thống âm thanh</span>
-                  </label>
-                </div>
+                <Label>Ghi chú</Label>
+                <Textarea 
+                  placeholder="Thông tin bổ sung" 
+                  rows={2} 
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                />
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
                 <Button variant="outline" onClick={() => setOpen(false)}>
                   Hủy
                 </Button>
-                <Button onClick={() => setOpen(false)}>
+                <Button onClick={handleSubmit}>
                   Gửi yêu cầu
                 </Button>
               </div>
@@ -248,28 +381,38 @@ const MeetingRoomBooking = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {bookings.map((booking) => (
-                <TableRow key={booking.id}>
-                  <TableCell className="font-medium">{booking.roomName}</TableCell>
-                  <TableCell>{booking.requester}</TableCell>
-                  <TableCell>{booking.department}</TableCell>
-                  <TableCell>{booking.date}</TableCell>
-                  <TableCell>{booking.timeStart} - {booking.timeEnd}</TableCell>
-                  <TableCell>{booking.participants} người</TableCell>
-                  <TableCell>{getStatusBadge(booking.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">Chi tiết</Button>
-                      {booking.status === 'pending' && (
-                        <>
-                          <Button variant="default" size="sm">Duyệt</Button>
-                          <Button variant="destructive" size="sm">Từ chối</Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">Đang tải...</TableCell>
                 </TableRow>
-              ))}
+              ) : bookings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">Chưa có yêu cầu đặt phòng nào</TableCell>
+                </TableRow>
+              ) : (
+                bookings.map((booking) => (
+                  <TableRow key={booking.id}>
+                    <TableCell className="font-medium">{booking.room?.name}</TableCell>
+                    <TableCell>{booking.profile?.full_name}</TableCell>
+                    <TableCell>{booking.department?.name || 'N/A'}</TableCell>
+                    <TableCell>{booking.booking_date}</TableCell>
+                    <TableCell>{booking.time_start} - {booking.time_end}</TableCell>
+                    <TableCell>{booking.participants} người</TableCell>
+                    <TableCell>{getStatusBadge(booking.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">Chi tiết</Button>
+                        {booking.status === 'pending' && (
+                          <>
+                            <Button variant="default" size="sm" onClick={() => handleApprove(booking.id)}>Duyệt</Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleReject(booking.id)}>Từ chối</Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

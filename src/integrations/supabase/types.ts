@@ -156,6 +156,94 @@ export type Database = {
           },
         ]
       }
+      business_trips: {
+        Row: {
+          accommodation:
+            | Database["public"]["Enums"]["accommodation_type"]
+            | null
+          actual_cost: number | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          department_id: string | null
+          destination: string
+          end_date: string
+          estimated_cost: number | null
+          id: string
+          notes: string | null
+          profile_id: string
+          purpose: string
+          start_date: string
+          status: Database["public"]["Enums"]["request_status"] | null
+          transportation: Database["public"]["Enums"]["transportation_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          accommodation?:
+            | Database["public"]["Enums"]["accommodation_type"]
+            | null
+          actual_cost?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          destination: string
+          end_date: string
+          estimated_cost?: number | null
+          id?: string
+          notes?: string | null
+          profile_id: string
+          purpose: string
+          start_date: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          transportation: Database["public"]["Enums"]["transportation_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          accommodation?:
+            | Database["public"]["Enums"]["accommodation_type"]
+            | null
+          actual_cost?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          destination?: string
+          end_date?: string
+          estimated_cost?: number | null
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          purpose?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          transportation?: Database["public"]["Enums"]["transportation_type"]
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_trips_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_trips_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "business_trips_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           contract_number: string
@@ -1016,6 +1104,125 @@ export type Database = {
           },
         ]
       }
+      meeting_room_bookings: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          booking_date: string
+          created_at: string | null
+          department_id: string | null
+          equipment: string[] | null
+          id: string
+          notes: string | null
+          participants: number
+          profile_id: string
+          purpose: string
+          room_id: string
+          status: Database["public"]["Enums"]["request_status"] | null
+          time_end: string
+          time_start: string
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          booking_date: string
+          created_at?: string | null
+          department_id?: string | null
+          equipment?: string[] | null
+          id?: string
+          notes?: string | null
+          participants: number
+          profile_id: string
+          purpose: string
+          room_id: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          time_end: string
+          time_start: string
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          booking_date?: string
+          created_at?: string | null
+          department_id?: string | null
+          equipment?: string[] | null
+          id?: string
+          notes?: string | null
+          participants?: number
+          profile_id?: string
+          purpose?: string
+          room_id?: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          time_end?: string
+          time_start?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_room_bookings_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_room_bookings_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_room_bookings_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_room_bookings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_rooms: {
+        Row: {
+          capacity: number
+          created_at: string | null
+          description: string | null
+          equipment: string[] | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          capacity: number
+          created_at?: string | null
+          description?: string | null
+          equipment?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          capacity?: number
+          created_at?: string | null
+          description?: string | null
+          equipment?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null
@@ -1149,6 +1356,111 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      shopping_request_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          item_name: string
+          quantity: number
+          request_id: string
+          total_price: number | null
+          unit: string
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          item_name: string
+          quantity: number
+          request_id: string
+          total_price?: number | null
+          unit: string
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          item_name?: string
+          quantity?: number
+          request_id?: string
+          total_price?: number | null
+          unit?: string
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "shopping_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shopping_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string | null
+          department_id: string | null
+          id: string
+          notes: string | null
+          profile_id: string
+          purpose: string
+          status: Database["public"]["Enums"]["request_status"] | null
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          id?: string
+          notes?: string | null
+          profile_id: string
+          purpose: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string | null
+          department_id?: string | null
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          purpose?: string
+          status?: Database["public"]["Enums"]["request_status"] | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopping_requests_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_requests_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopping_requests_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1337,6 +1649,7 @@ export type Database = {
       seed_sample_data: { Args: never; Returns: undefined }
     }
     Enums: {
+      accommodation_type: "hotel-5" | "hotel-4" | "hotel-3" | "guesthouse"
       app_role: "admin" | "manager" | "staff" | "driver" | "accountant" | "hr"
       booking_status:
         | "pending"
@@ -1351,6 +1664,8 @@ export type Database = {
       leave_status: "pending" | "approved" | "rejected"
       maintenance_type: "regular" | "repair" | "inspection" | "emergency"
       payment_status: "pending" | "partial" | "paid" | "overdue"
+      request_status: "pending" | "approved" | "rejected" | "cancelled"
+      transportation_type: "plane" | "train" | "car" | "personal"
       vehicle_status: "available" | "in_use" | "maintenance" | "inactive"
     }
     CompositeTypes: {
@@ -1479,6 +1794,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      accommodation_type: ["hotel-5", "hotel-4", "hotel-3", "guesthouse"],
       app_role: ["admin", "manager", "staff", "driver", "accountant", "hr"],
       booking_status: [
         "pending",
@@ -1494,6 +1810,8 @@ export const Constants = {
       leave_status: ["pending", "approved", "rejected"],
       maintenance_type: ["regular", "repair", "inspection", "emergency"],
       payment_status: ["pending", "partial", "paid", "overdue"],
+      request_status: ["pending", "approved", "rejected", "cancelled"],
+      transportation_type: ["plane", "train", "car", "personal"],
       vehicle_status: ["available", "in_use", "maintenance", "inactive"],
     },
   },

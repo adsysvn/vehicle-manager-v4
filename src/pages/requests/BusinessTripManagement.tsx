@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,38 +9,167 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Plane, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const BusinessTripManagement = () => {
-  const [trips, setTrips] = useState([
-    {
-      id: 1,
-      employee: 'Nguyễn Văn A',
-      department: 'Kinh doanh',
-      destination: 'Hà Nội',
-      purpose: 'Gặp khách hàng mới',
-      startDate: '2025-10-28',
-      endDate: '2025-10-30',
-      estimatedCost: 5000000,
-      status: 'approved',
-      transportation: 'Máy bay',
-      accommodation: 'Khách sạn 4 sao'
-    },
-    {
-      id: 2,
-      employee: 'Trần Thị B',
-      department: 'Điều hành',
-      destination: 'Đà Nẵng',
-      purpose: 'Khảo sát địa điểm',
-      startDate: '2025-11-01',
-      endDate: '2025-11-03',
-      estimatedCost: 3500000,
-      status: 'pending',
-      transportation: 'Xe công ty',
-      accommodation: 'Khách sạn 3 sao'
-    }
-  ]);
-
+  const [trips, setTrips] = useState<any[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  const [formData, setFormData] = useState({
+    destination: '',
+    purpose: '',
+    start_date: '',
+    end_date: '',
+    transportation: '',
+    accommodation: '',
+    estimated_cost: 0,
+    notes: ''
+  });
+
+  useEffect(() => {
+    fetchTrips();
+    fetchDepartments();
+  }, []);
+
+  const fetchTrips = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('business_trips')
+        .select(`
+          *,
+          profile:profiles!business_trips_profile_id_fkey(full_name, email),
+          department:departments(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTrips(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    const { data } = await supabase.from('departments').select('*');
+    setDepartments(data || []);
+  };
+
+  const handleSubmit = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Chưa đăng nhập');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('department_id')
+        .eq('id', user.id)
+        .single();
+
+      const { error } = await supabase.from('business_trips').insert([{
+        profile_id: user.id,
+        department_id: profile?.department_id || null,
+        destination: formData.destination,
+        purpose: formData.purpose,
+        start_date: formData.start_date,
+        end_date: formData.end_date,
+        transportation: formData.transportation as any,
+        accommodation: formData.accommodation as any,
+        estimated_cost: formData.estimated_cost,
+        notes: formData.notes
+      }]);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo yêu cầu công tác'
+      });
+      
+      setOpen(false);
+      fetchTrips();
+      setFormData({
+        destination: '',
+        purpose: '',
+        start_date: '',
+        end_date: '',
+        transportation: '',
+        accommodation: '',
+        estimated_cost: 0,
+        notes: ''
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleApprove = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('business_trips')
+        .update({
+          status: 'approved',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã duyệt yêu cầu'
+      });
+      fetchTrips();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleReject = async (id: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase
+        .from('business_trips')
+        .update({
+          status: 'rejected',
+          approved_by: user?.id,
+          approved_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã từ chối yêu cầu'
+      });
+      fetchTrips();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -82,33 +211,16 @@ const BusinessTripManagement = () => {
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Nhân viên</Label>
-                  <Input placeholder="Tên nhân viên" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Phòng ban</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn phòng ban" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="sales">Kinh doanh</SelectItem>
-                      <SelectItem value="operations">Điều hành</SelectItem>
-                      <SelectItem value="hrm">Nhân sự</SelectItem>
-                      <SelectItem value="accounting">Kế toán</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
                   <Label>Điểm đến</Label>
-                  <Input placeholder="Thành phố/Tỉnh" />
+                  <Input 
+                    placeholder="Thành phố/Tỉnh" 
+                    value={formData.destination}
+                    onChange={(e) => setFormData({...formData, destination: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Phương tiện di chuyển</Label>
-                  <Select>
+                  <Select value={formData.transportation} onValueChange={(v) => setFormData({...formData, transportation: v})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn phương tiện" />
                     </SelectTrigger>
@@ -125,23 +237,36 @@ const BusinessTripManagement = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Ngày bắt đầu</Label>
-                  <Input type="date" />
+                  <Input 
+                    type="date" 
+                    value={formData.start_date}
+                    onChange={(e) => setFormData({...formData, start_date: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Ngày kết thúc</Label>
-                  <Input type="date" />
+                  <Input 
+                    type="date" 
+                    value={formData.end_date}
+                    onChange={(e) => setFormData({...formData, end_date: e.target.value})}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Mục đích công tác</Label>
-                <Textarea placeholder="Mô tả chi tiết mục đích công tác" rows={3} />
+                <Textarea 
+                  placeholder="Mô tả chi tiết mục đích công tác" 
+                  rows={3} 
+                  value={formData.purpose}
+                  onChange={(e) => setFormData({...formData, purpose: e.target.value})}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Nơi lưu trú</Label>
-                  <Select>
+                  <Select value={formData.accommodation} onValueChange={(v) => setFormData({...formData, accommodation: v})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Chọn loại lưu trú" />
                     </SelectTrigger>
@@ -155,20 +280,30 @@ const BusinessTripManagement = () => {
                 </div>
                 <div className="space-y-2">
                   <Label>Chi phí dự kiến (VND)</Label>
-                  <Input type="number" placeholder="0" />
+                  <Input 
+                    type="number" 
+                    placeholder="0" 
+                    value={formData.estimated_cost}
+                    onChange={(e) => setFormData({...formData, estimated_cost: Number(e.target.value)})}
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label>Ghi chú thêm</Label>
-                <Textarea placeholder="Các thông tin bổ sung khác" rows={2} />
+                <Textarea 
+                  placeholder="Các thông tin bổ sung khác" 
+                  rows={2} 
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                />
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
                 <Button variant="outline" onClick={() => setOpen(false)}>
                   Hủy
                 </Button>
-                <Button onClick={() => setOpen(false)}>
+                <Button onClick={handleSubmit}>
                   Gửi yêu cầu
                 </Button>
               </div>
@@ -249,29 +384,39 @@ const BusinessTripManagement = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {trips.map((trip) => (
-                <TableRow key={trip.id}>
-                  <TableCell className="font-medium">{trip.employee}</TableCell>
-                  <TableCell>{trip.department}</TableCell>
-                  <TableCell>{trip.destination}</TableCell>
-                  <TableCell>
-                    {trip.startDate} đến {trip.endDate}
-                  </TableCell>
-                  <TableCell>{formatCurrency(trip.estimatedCost)}</TableCell>
-                  <TableCell>{getStatusBadge(trip.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">Chi tiết</Button>
-                      {trip.status === 'pending' && (
-                        <>
-                          <Button variant="default" size="sm">Duyệt</Button>
-                          <Button variant="destructive" size="sm">Từ chối</Button>
-                        </>
-                      )}
-                    </div>
-                  </TableCell>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">Đang tải...</TableCell>
                 </TableRow>
-              ))}
+              ) : trips.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center">Chưa có yêu cầu công tác nào</TableCell>
+                </TableRow>
+              ) : (
+                trips.map((trip) => (
+                  <TableRow key={trip.id}>
+                    <TableCell className="font-medium">{trip.profile?.full_name}</TableCell>
+                    <TableCell>{trip.department?.name || 'N/A'}</TableCell>
+                    <TableCell>{trip.destination}</TableCell>
+                    <TableCell>
+                      {trip.start_date} đến {trip.end_date}
+                    </TableCell>
+                    <TableCell>{formatCurrency(trip.estimated_cost || 0)}</TableCell>
+                    <TableCell>{getStatusBadge(trip.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="sm">Chi tiết</Button>
+                        {trip.status === 'pending' && (
+                          <>
+                            <Button variant="default" size="sm" onClick={() => handleApprove(trip.id)}>Duyệt</Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleReject(trip.id)}>Từ chối</Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
