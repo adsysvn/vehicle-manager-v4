@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Edit, Trash2, Phone, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,32 +30,50 @@ interface Employee {
 
 const EmployeeList = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const employees: Employee[] = [
-    {
-      id: '1',
-      code: 'NV001',
-      name: 'Nguyễn Văn A',
-      position: 'Lái xe',
-      department: 'Vận tải',
-      phone: '0901234567',
-      email: 'nguyenvana@example.com',
-      status: 'active',
-      joinDate: '2023-01-15'
-    },
-    {
-      id: '2',
-      code: 'NV002',
-      name: 'Trần Thị B',
-      position: 'Điều hành',
-      department: 'Điều hành',
-      phone: '0912345678',
-      email: 'tranthib@example.com',
-      status: 'active',
-      joinDate: '2023-03-20'
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          department:departments(name)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData: Employee[] = (data || []).map(p => ({
+        id: p.id,
+        code: p.employee_code || 'N/A',
+        name: p.full_name,
+        position: 'Nhân viên',
+        department: p.department?.name || 'N/A',
+        phone: p.phone || 'N/A',
+        email: p.email || 'N/A',
+        status: 'active',
+        joinDate: p.hire_date || new Date().toISOString().split('T')[0]
+      }));
+
+      setEmployees(formattedData);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   return (
     <div className="space-y-6">
@@ -99,7 +119,16 @@ const EmployeeList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {employees.map((employee) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">Đang tải...</TableCell>
+                </TableRow>
+              ) : employees.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">Chưa có nhân viên nào</TableCell>
+                </TableRow>
+              ) : (
+                employees.map((employee) => (
                 <TableRow key={employee.id}>
                   <TableCell className="font-medium">{employee.code}</TableCell>
                   <TableCell>{employee.name}</TableCell>
@@ -134,7 +163,8 @@ const EmployeeList = () => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

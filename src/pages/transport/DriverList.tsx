@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,33 +13,68 @@ import { Users, Search, Plus, Phone, Mail, AlertCircle, CheckCircle } from 'luci
 
 interface Driver {
   id: string;
-  name: string;
+  full_name: string;
   phone: string;
   email: string;
-  licenseNumber: string;
-  licenseType: string;
-  licenseExpiry: string;
-  status: 'active' | 'on-leave' | 'inactive';
-  experience: number;
+  license_number: string;
+  license_type: string;
+  license_expiry: string;
+  status: string;
+  experience_years: number;
   rating: number;
 }
 
-const mockDrivers: Driver[] = [
-  { id: 'DRV001', name: 'Nguyễn Văn A', phone: '0901234567', email: 'vana@email.com', licenseNumber: '012345678', licenseType: 'B2', licenseExpiry: '2025-12-31', status: 'active', experience: 10, rating: 4.8 },
-  { id: 'DRV002', name: 'Trần Văn B', phone: '0902345678', email: 'vanb@email.com', licenseNumber: '023456789', licenseType: 'D', licenseExpiry: '2024-06-30', status: 'active', experience: 15, rating: 4.6 },
-  { id: 'DRV003', name: 'Lê Thị C', phone: '0903456789', email: 'thic@email.com', licenseNumber: '034567890', licenseType: 'B2', licenseExpiry: '2026-03-15', status: 'on-leave', experience: 8, rating: 4.9 },
-  { id: 'DRV004', name: 'Phạm Văn D', phone: '0904567890', email: 'vand@email.com', licenseNumber: '045678901', licenseType: 'C', licenseExpiry: '2024-09-20', status: 'active', experience: 12, rating: 4.5 },
-  { id: 'DRV005', name: 'Hoàng Văn E', phone: '0905678901', email: 'vane@email.com', licenseNumber: '056789012', licenseType: 'B2', licenseExpiry: '2023-12-31', status: 'inactive', experience: 5, rating: 4.2 },
-];
-
 export default function DriverList() {
-  const [drivers] = useState<Driver[]>(mockDrivers);
+  const { toast } = useToast();
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  useEffect(() => {
+    fetchDrivers();
+  }, []);
+
+  const fetchDrivers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('drivers')
+        .select(`
+          *,
+          profile:profiles!drivers_profile_id_fkey(full_name, phone, email)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData: Driver[] = (data || []).map(d => ({
+        id: d.id,
+        full_name: d.profile?.full_name || 'N/A',
+        phone: d.profile?.phone || 'N/A',
+        email: d.profile?.email || 'N/A',
+        license_number: d.license_number,
+        license_type: d.license_type,
+        license_expiry: d.license_expiry,
+        status: d.status,
+        experience_years: d.experience_years || 0,
+        rating: d.rating || 5.0
+      }));
+
+      setDrivers(formattedData);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredDrivers = drivers.filter(driver =>
-    driver.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    driver.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     driver.phone.includes(searchTerm) ||
-    driver.licenseNumber.includes(searchTerm)
+    driver.license_number.includes(searchTerm)
   );
 
   const getStatusColor = (status: string) => {
@@ -193,44 +230,54 @@ export default function DriverList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDrivers.map((driver) => (
-                  <TableRow key={driver.id}>
-                    <TableCell className="font-medium">{driver.id}</TableCell>
-                    <TableCell>{driver.name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1 text-sm">
-                          <Phone className="w-3 h-3" />
-                          {driver.phone}
-                        </div>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Mail className="w-3 h-3" />
-                          {driver.email}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{driver.licenseNumber}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{driver.licenseType}</Badge>
-                    </TableCell>
-                    <TableCell>{driver.licenseExpiry}</TableCell>
-                    <TableCell>{driver.experience} năm</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <span className="text-yellow-500">★</span>
-                        <span className="font-medium">{driver.rating}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(driver.status)}>
-                        {getStatusText(driver.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm">Chi tiết</Button>
-                    </TableCell>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center">Đang tải...</TableCell>
                   </TableRow>
-                ))}
+                ) : filteredDrivers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center">Chưa có lái xe nào</TableCell>
+                  </TableRow>
+                ) : (
+                  filteredDrivers.map((driver) => (
+                    <TableRow key={driver.id}>
+                      <TableCell className="font-medium">{driver.id.substring(0, 8)}</TableCell>
+                      <TableCell>{driver.full_name}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-1 text-sm">
+                            <Phone className="w-3 h-3" />
+                            {driver.phone}
+                          </div>
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Mail className="w-3 h-3" />
+                            {driver.email}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{driver.license_number}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{driver.license_type}</Badge>
+                      </TableCell>
+                      <TableCell>{driver.license_expiry}</TableCell>
+                      <TableCell>{driver.experience_years} năm</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <span className="text-yellow-500">★</span>
+                          <span className="font-medium">{driver.rating.toFixed(1)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(driver.status)}>
+                          {getStatusText(driver.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm">Chi tiết</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

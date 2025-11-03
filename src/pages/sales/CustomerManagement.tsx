@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,41 +28,57 @@ interface Customer {
   preferredVehicle: string;
 }
 
-const mockCustomers: Customer[] = [
-  {
-    id: 'CUS001',
-    name: 'Nguyễn Văn A',
-    type: 'individual',
-    phone: '0901234567',
-    email: 'nguyenvana@email.com',
-    address: '123 Đường Láng, Hà Nội',
-    totalBookings: 15,
-    totalRevenue: 45000000,
-    lastBooking: '2024-03-15',
-    status: 'active',
-    preferredVehicle: '7 chỗ'
-  },
-  {
-    id: 'CUS002',
-    name: 'Công ty TNHH ABC',
-    type: 'corporate',
-    phone: '0902345678',
-    email: 'contact@abc.com',
-    address: '456 Nguyễn Trãi, Hà Nội',
-    company: 'Công ty TNHH ABC',
-    taxCode: '0123456789',
-    totalBookings: 45,
-    totalRevenue: 180000000,
-    lastBooking: '2024-03-18',
-    status: 'active',
-    preferredVehicle: '16 chỗ'
-  }
-];
-
 export default function CustomerManagement() {
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const { toast } = useToast();
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'individual' | 'corporate'>('all');
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select(`
+          *,
+          bookings(id),
+          invoices(total_amount)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData: Customer[] = (data || []).map(c => ({
+        id: c.id,
+        name: c.name,
+        type: c.customer_type === 'corporate' ? 'corporate' : 'individual',
+        phone: c.phone,
+        email: c.email || '',
+        address: c.address || '',
+        company: c.company_name || undefined,
+        taxCode: c.tax_code || undefined,
+        totalBookings: c.bookings?.length || 0,
+        totalRevenue: c.invoices?.reduce((sum: number, inv: any) => sum + (inv.total_amount || 0), 0) || 0,
+        lastBooking: new Date().toISOString().split('T')[0],
+        status: 'active',
+        preferredVehicle: '7 chỗ'
+      }));
+
+      setCustomers(formattedData);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredCustomers = customers.filter(c => 
     filterType === 'all' ? true : c.type === filterType
@@ -227,7 +245,16 @@ export default function CustomerManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCustomers.map((customer) => (
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center">Đang tải...</TableCell>
+                </TableRow>
+              ) : filteredCustomers.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center">Chưa có khách hàng nào</TableCell>
+                </TableRow>
+              ) : (
+                filteredCustomers.map((customer) => (
                 <TableRow key={customer.id}>
                   <TableCell className="font-medium">{customer.id}</TableCell>
                   <TableCell>
@@ -284,7 +311,8 @@ export default function CustomerManagement() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,31 +13,49 @@ import { Car, Search, Plus, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface Vehicle {
   id: string;
-  plateNumber: string;
+  license_plate: string;
   brand: string;
   model: string;
   year: number;
   seats: number;
-  status: 'active' | 'maintenance' | 'inactive';
-  registrationExpiry: string;
-  insuranceExpiry: string;
-  mileage: number;
+  status: string;
+  registration_expiry: string | null;
+  insurance_expiry: string | null;
+  current_mileage: number;
 }
 
-const mockVehicles: Vehicle[] = [
-  { id: 'VEH001', plateNumber: '30A-12345', brand: 'Toyota', model: 'Vios', year: 2022, seats: 4, status: 'active', registrationExpiry: '2024-06-15', insuranceExpiry: '2024-08-20', mileage: 25000 },
-  { id: 'VEH002', plateNumber: '30B-67890', brand: 'Toyota', model: 'Innova', year: 2021, seats: 7, status: 'active', registrationExpiry: '2024-05-10', insuranceExpiry: '2024-07-15', mileage: 45000 },
-  { id: 'VEH003', plateNumber: '30C-11111', brand: 'Hyundai', model: 'Solati', year: 2023, seats: 16, status: 'maintenance', registrationExpiry: '2024-12-30', insuranceExpiry: '2024-11-25', mileage: 18000 },
-  { id: 'VEH004', plateNumber: '30A-22222', brand: 'Mazda', model: 'CX-5', year: 2020, seats: 5, status: 'active', registrationExpiry: '2024-03-20', insuranceExpiry: '2024-04-10', mileage: 65000 },
-  { id: 'VEH005', plateNumber: '30D-33333', brand: 'Honda', model: 'City', year: 2019, seats: 4, status: 'inactive', registrationExpiry: '2024-02-15', insuranceExpiry: '2024-03-05', mileage: 85000 },
-];
-
 export default function VehicleList() {
-  const [vehicles] = useState<Vehicle[]>(mockVehicles);
+  const { toast } = useToast();
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  useEffect(() => {
+    fetchVehicles();
+  }, []);
+
+  const fetchVehicles = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setVehicles(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredVehicles = vehicles.filter(vehicle =>
-    vehicle.plateNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    vehicle.license_plate.toLowerCase().includes(searchTerm.toLowerCase()) ||
     vehicle.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
     vehicle.model.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -193,26 +213,36 @@ export default function VehicleList() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredVehicles.map((vehicle) => (
-                  <TableRow key={vehicle.id}>
-                    <TableCell className="font-medium">{vehicle.plateNumber}</TableCell>
-                    <TableCell>{vehicle.brand}</TableCell>
-                    <TableCell>{vehicle.model}</TableCell>
-                    <TableCell>{vehicle.year}</TableCell>
-                    <TableCell>{vehicle.seats} chỗ</TableCell>
-                    <TableCell>{vehicle.mileage.toLocaleString('vi-VN')} km</TableCell>
-                    <TableCell>{vehicle.registrationExpiry}</TableCell>
-                    <TableCell>{vehicle.insuranceExpiry}</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(vehicle.status)}>
-                        {getStatusText(vehicle.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="outline" size="sm">Chi tiết</Button>
-                    </TableCell>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center">Đang tải...</TableCell>
                   </TableRow>
-                ))}
+                ) : filteredVehicles.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center">Chưa có phương tiện nào</TableCell>
+                  </TableRow>
+                ) : (
+                  filteredVehicles.map((vehicle) => (
+                    <TableRow key={vehicle.id}>
+                      <TableCell className="font-medium">{vehicle.license_plate}</TableCell>
+                      <TableCell>{vehicle.brand}</TableCell>
+                      <TableCell>{vehicle.model}</TableCell>
+                      <TableCell>{vehicle.year || 'N/A'}</TableCell>
+                      <TableCell>{vehicle.seats} chỗ</TableCell>
+                      <TableCell>{(vehicle.current_mileage || 0).toLocaleString('vi-VN')} km</TableCell>
+                      <TableCell>{vehicle.registration_expiry || 'N/A'}</TableCell>
+                      <TableCell>{vehicle.insurance_expiry || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(vehicle.status)}>
+                          {getStatusText(vehicle.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="outline" size="sm">Chi tiết</Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

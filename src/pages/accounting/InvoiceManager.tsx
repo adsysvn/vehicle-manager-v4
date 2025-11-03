@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,38 +13,77 @@ import { FileText, Search, Plus, Download, Send } from 'lucide-react';
 
 interface Invoice {
   id: string;
-  customerName: string;
-  company: string;
-  issueDate: string;
-  dueDate: string;
-  amount: number;
-  tax: number;
-  totalAmount: number;
-  status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
-  bookingId: string;
+  invoice_number: string;
+  customer_name: string;
+  company_name: string;
+  issue_date: string;
+  due_date: string;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  payment_status: string;
+  booking_id: string | null;
 }
 
-const mockInvoices: Invoice[] = [
-  { id: 'INV001', customerName: 'Nguyễn Văn A', company: 'Công ty ABC', issueDate: '2024-01-01', dueDate: '2024-01-15', amount: 20000000, tax: 2000000, totalAmount: 22000000, status: 'paid', bookingId: 'BK001' },
-  { id: 'INV002', customerName: 'Trần Văn B', company: 'Công ty XYZ', issueDate: '2024-01-05', dueDate: '2024-01-20', amount: 35000000, tax: 3500000, totalAmount: 38500000, status: 'sent', bookingId: 'BK002' },
-  { id: 'INV003', customerName: 'Lê Thị C', company: 'Công ty 123', issueDate: '2024-01-10', dueDate: '2024-01-25', amount: 15000000, tax: 1500000, totalAmount: 16500000, status: 'draft', bookingId: 'BK003' },
-  { id: 'INV004', customerName: 'Phạm Văn D', company: 'Công ty DEF', issueDate: '2023-12-20', dueDate: '2024-01-05', amount: 25000000, tax: 2500000, totalAmount: 27500000, status: 'overdue', bookingId: 'BK004' },
-];
-
 export default function InvoiceManager() {
-  const [invoices] = useState<Invoice[]>(mockInvoices);
+  const { toast } = useToast();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  const fetchInvoices = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          customer:customers(name, company_name),
+          booking:bookings(booking_number)
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedData: Invoice[] = (data || []).map(inv => ({
+        id: inv.id,
+        invoice_number: inv.invoice_number,
+        customer_name: inv.customer?.name || 'N/A',
+        company_name: inv.customer?.company_name || 'N/A',
+        issue_date: inv.issue_date,
+        due_date: inv.due_date,
+        subtotal: inv.subtotal,
+        tax_amount: inv.tax_amount,
+        total_amount: inv.total_amount,
+        payment_status: inv.payment_status,
+        booking_id: inv.booking?.booking_number || null
+      }));
+
+      setInvoices(formattedData);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredInvoices = invoices.filter(invoice =>
-    invoice.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    invoice.company.toLowerCase().includes(searchTerm.toLowerCase())
+    invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    invoice.company_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'draft': return 'bg-gray-500/10 text-gray-500';
-      case 'sent': return 'bg-blue-500/10 text-blue-500';
+      case 'pending': return 'bg-gray-500/10 text-gray-500';
+      case 'partial': return 'bg-blue-500/10 text-blue-500';
       case 'paid': return 'bg-green-500/10 text-green-500';
       case 'overdue': return 'bg-red-500/10 text-red-500';
       case 'cancelled': return 'bg-orange-500/10 text-orange-500';
@@ -52,8 +93,8 @@ export default function InvoiceManager() {
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'draft': return 'Bản nháp';
-      case 'sent': return 'Đã gửi';
+      case 'pending': return 'Chờ thanh toán';
+      case 'partial': return 'Thanh toán 1 phần';
       case 'paid': return 'Đã thanh toán';
       case 'overdue': return 'Quá hạn';
       case 'cancelled': return 'Đã hủy';
@@ -61,8 +102,8 @@ export default function InvoiceManager() {
     }
   };
 
-  const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.totalAmount, 0);
-  const pendingAmount = invoices.filter(i => i.status === 'sent').reduce((sum, i) => sum + i.totalAmount, 0);
+  const totalRevenue = invoices.filter(i => i.payment_status === 'paid').reduce((sum, i) => sum + i.total_amount, 0);
+  const pendingAmount = invoices.filter(i => i.payment_status === 'pending').reduce((sum, i) => sum + i.total_amount, 0);
 
   return (
     <div className="p-6 space-y-6">
@@ -164,7 +205,7 @@ export default function InvoiceManager() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Quá hạn</p>
-              <p className="text-2xl font-bold text-red-500">{invoices.filter(i => i.status === 'overdue').length}</p>
+              <p className="text-2xl font-bold text-red-500">{invoices.filter(i => i.payment_status === 'overdue').length}</p>
             </div>
           </div>
         </Card>
@@ -199,35 +240,45 @@ export default function InvoiceManager() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredInvoices.map((invoice) => (
-                  <TableRow key={invoice.id}>
-                    <TableCell className="font-medium">{invoice.id}</TableCell>
-                    <TableCell>{invoice.customerName}</TableCell>
-                    <TableCell>{invoice.company}</TableCell>
-                    <TableCell>{invoice.issueDate}</TableCell>
-                    <TableCell>{invoice.dueDate}</TableCell>
-                    <TableCell>{invoice.amount.toLocaleString('vi-VN')} đ</TableCell>
-                    <TableCell>{invoice.tax.toLocaleString('vi-VN')} đ</TableCell>
-                    <TableCell className="font-medium">{invoice.totalAmount.toLocaleString('vi-VN')} đ</TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(invoice.status)}>
-                        {getStatusText(invoice.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                          <Download className="w-3 h-3" />
-                        </Button>
-                        {invoice.status === 'draft' && (
-                          <Button size="sm">
-                            <Send className="w-3 h-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center">Đang tải...</TableCell>
                   </TableRow>
-                ))}
+                ) : filteredInvoices.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-center">Chưa có hóa đơn nào</TableCell>
+                  </TableRow>
+                ) : (
+                  filteredInvoices.map((invoice) => (
+                    <TableRow key={invoice.id}>
+                      <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
+                      <TableCell>{invoice.customer_name}</TableCell>
+                      <TableCell>{invoice.company_name}</TableCell>
+                      <TableCell>{invoice.issue_date}</TableCell>
+                      <TableCell>{invoice.due_date}</TableCell>
+                      <TableCell>{invoice.subtotal.toLocaleString('vi-VN')} đ</TableCell>
+                      <TableCell>{invoice.tax_amount.toLocaleString('vi-VN')} đ</TableCell>
+                      <TableCell className="font-medium">{invoice.total_amount.toLocaleString('vi-VN')} đ</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(invoice.payment_status)}>
+                          {getStatusText(invoice.payment_status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="outline" size="sm">
+                            <Download className="w-3 h-3" />
+                          </Button>
+                          {invoice.payment_status === 'pending' && (
+                            <Button size="sm">
+                              <Send className="w-3 h-3" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

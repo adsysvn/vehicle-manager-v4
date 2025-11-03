@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,74 +21,23 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, Edit, Trash2, MapPin, Route } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RouteItem {
   id: string;
   name: string;
-  startPoint: string;
-  endPoint: string;
-  distance: number; // km
-  estimatedDuration: number; // minutes
+  from_location: string;
+  to_location: string;
+  distance_km: number;
+  estimated_duration: number;
   description?: string;
-  isActive: boolean;
+  is_active: boolean;
 }
-
-const mockRoutes: RouteItem[] = [
-  {
-    id: 'RT001',
-    name: 'HCM - Vũng Tàu',
-    startPoint: 'TP. Hồ Chí Minh',
-    endPoint: 'Vũng Tàu',
-    distance: 125,
-    estimatedDuration: 120,
-    description: 'Tuyến đường cao tốc TP.HCM - Long Thành - Dầu Giây',
-    isActive: true
-  },
-  {
-    id: 'RT002',
-    name: 'HCM - Đà Lạt',
-    startPoint: 'TP. Hồ Chí Minh',
-    endPoint: 'Đà Lạt',
-    distance: 308,
-    estimatedDuration: 360,
-    description: 'Tuyến đường đi qua Bảo Lộc',
-    isActive: true
-  },
-  {
-    id: 'RT003',
-    name: 'HCM - Phan Thiết',
-    startPoint: 'TP. Hồ Chí Minh',
-    endPoint: 'Phan Thiết',
-    distance: 200,
-    estimatedDuration: 240,
-    description: 'Tuyến đường ven biển',
-    isActive: true
-  },
-  {
-    id: 'RT004',
-    name: 'Hà Nội - Hạ Long',
-    startPoint: 'Hà Nội',
-    endPoint: 'Hạ Long, Quảng Ninh',
-    distance: 165,
-    estimatedDuration: 180,
-    description: 'Cao tốc Hà Nội - Hạ Long',
-    isActive: true
-  },
-  {
-    id: 'RT005',
-    name: 'Hà Nội - Sapa',
-    startPoint: 'Hà Nội',
-    endPoint: 'Sapa, Lào Cai',
-    distance: 315,
-    estimatedDuration: 360,
-    description: 'Tuyến đường qua Lào Cai',
-    isActive: true
-  }
-];
 
 export default function RouteManagement() {
   const { toast } = useToast();
-  const [routes, setRoutes] = useState<RouteItem[]>(mockRoutes);
+  const [routes, setRoutes] = useState<RouteItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<RouteItem | null>(null);
   const [formData, setFormData] = useState({
@@ -100,70 +49,120 @@ export default function RouteManagement() {
     description: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchRoutes();
+  }, []);
+
+  const fetchRoutes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('routes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setRoutes(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingRoute) {
-      // Update existing route
-      setRoutes(routes.map(r => 
-        r.id === editingRoute.id 
-          ? {
-              ...r,
-              name: formData.name,
-              startPoint: formData.startPoint,
-              endPoint: formData.endPoint,
-              distance: parseFloat(formData.distance),
-              estimatedDuration: parseInt(formData.estimatedDuration),
-              description: formData.description
-            }
-          : r
-      ));
+    try {
+      if (editingRoute) {
+        const { error } = await supabase
+          .from('routes')
+          .update({
+            name: formData.name,
+            from_location: formData.startPoint,
+            to_location: formData.endPoint,
+            distance_km: parseFloat(formData.distance),
+            estimated_duration: parseInt(formData.estimatedDuration),
+            description: formData.description
+          })
+          .eq('id', editingRoute.id);
+
+        if (error) throw error;
+        
+        toast({
+          title: 'Cập nhật thành công',
+          description: `Đã cập nhật hành trình ${formData.name}`
+        });
+      } else {
+        const { error } = await supabase
+          .from('routes')
+          .insert([{
+            name: formData.name,
+            from_location: formData.startPoint,
+            to_location: formData.endPoint,
+            distance_km: parseFloat(formData.distance),
+            estimated_duration: parseInt(formData.estimatedDuration),
+            description: formData.description,
+            is_active: true
+          }]);
+
+        if (error) throw error;
+        
+        toast({
+          title: 'Thêm thành công',
+          description: `Đã thêm hành trình ${formData.name}`
+        });
+      }
+
+      setIsDialogOpen(false);
+      resetForm();
+      fetchRoutes();
+    } catch (error: any) {
       toast({
-        title: 'Cập nhật thành công',
-        description: `Đã cập nhật hành trình ${formData.name}`
-      });
-    } else {
-      // Create new route
-      const newRoute: RouteItem = {
-        id: `RT${String(routes.length + 1).padStart(3, '0')}`,
-        name: formData.name,
-        startPoint: formData.startPoint,
-        endPoint: formData.endPoint,
-        distance: parseFloat(formData.distance),
-        estimatedDuration: parseInt(formData.estimatedDuration),
-        description: formData.description,
-        isActive: true
-      };
-      setRoutes([...routes, newRoute]);
-      toast({
-        title: 'Thêm thành công',
-        description: `Đã thêm hành trình ${formData.name}`
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
       });
     }
-
-    setIsDialogOpen(false);
-    resetForm();
   };
 
   const handleEdit = (route: RouteItem) => {
     setEditingRoute(route);
     setFormData({
       name: route.name,
-      startPoint: route.startPoint,
-      endPoint: route.endPoint,
-      distance: route.distance.toString(),
-      estimatedDuration: route.estimatedDuration.toString(),
+      startPoint: route.from_location,
+      endPoint: route.to_location,
+      distance: route.distance_km.toString(),
+      estimatedDuration: route.estimated_duration.toString(),
       description: route.description || ''
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setRoutes(routes.filter(r => r.id !== id));
-    toast({
-      title: 'Xóa thành công',
-      description: 'Đã xóa hành trình'
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('routes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Xóa thành công',
+        description: 'Đã xóa hành trình'
+      });
+      fetchRoutes();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    }
   };
 
   const resetForm = () => {
@@ -302,7 +301,7 @@ export default function RouteManagement() {
           <CardContent className="p-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {routes.filter(r => r.isActive).length}
+                {routes.filter(r => r.is_active).length}
               </div>
               <div className="text-sm text-muted-foreground">Đang hoạt động</div>
             </div>
@@ -312,7 +311,7 @@ export default function RouteManagement() {
           <CardContent className="p-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
-                {Math.round(routes.reduce((sum, r) => sum + r.distance, 0) / routes.length)}
+                {routes.length > 0 ? Math.round(routes.reduce((sum, r) => sum + r.distance_km, 0) / routes.length) : 0}
               </div>
               <div className="text-sm text-muted-foreground">TB km/hành trình</div>
             </div>
@@ -322,7 +321,7 @@ export default function RouteManagement() {
           <CardContent className="p-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {routes.reduce((sum, r) => sum + r.distance, 0).toLocaleString()}
+                {routes.reduce((sum, r) => sum + r.distance_km, 0).toLocaleString()}
               </div>
               <div className="text-sm text-muted-foreground">Tổng km</div>
             </div>
@@ -353,61 +352,71 @@ export default function RouteManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {routes.map((route) => (
-                <TableRow key={route.id}>
-                  <TableCell className="font-medium">{route.id}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{route.name}</p>
-                      {route.description && (
-                        <p className="text-xs text-muted-foreground">{route.description}</p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-green-600" />
-                      <span className="text-sm">{route.startPoint}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-red-600" />
-                      <span className="text-sm">{route.endPoint}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{route.distance} km</Badge>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDuration(route.estimatedDuration)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={route.isActive ? 'default' : 'secondary'}>
-                      {route.isActive ? 'Hoạt động' : 'Tạm dừng'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(route)}
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(route.id)}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">Đang tải...</TableCell>
                 </TableRow>
-              ))}
+              ) : routes.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">Chưa có hành trình nào</TableCell>
+                </TableRow>
+              ) : (
+                routes.map((route) => (
+                  <TableRow key={route.id}>
+                    <TableCell className="font-medium">{route.name.split('-')[0]}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{route.name}</p>
+                        {route.description && (
+                          <p className="text-xs text-muted-foreground">{route.description}</p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-green-600" />
+                        <span className="text-sm">{route.from_location}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-red-600" />
+                        <span className="text-sm">{route.to_location}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{route.distance_km} km</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDuration(route.estimated_duration)}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={route.is_active ? 'default' : 'secondary'}>
+                        {route.is_active ? 'Hoạt động' : 'Tạm dừng'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(route)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(route.id)}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
