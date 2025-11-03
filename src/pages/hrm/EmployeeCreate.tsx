@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,9 +6,20 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+}
 
 const EmployeeCreate = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     employeeId: '',
     fullName: '',
@@ -21,11 +32,60 @@ const EmployeeCreate = () => {
     address: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchDepartments();
+  }, []);
+
+  const fetchDepartments = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name, code')
+        .order('name');
+
+      if (error) throw error;
+      setDepartments(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tải danh sách phòng ban',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Employee data:', formData);
-    // Handle employee creation
-    navigate('/hrm/employees');
+    setLoading(true);
+
+    try {
+      // Use the database function to create user with profile
+      const { data, error } = await supabase.rpc('create_user_with_profile', {
+        p_email: formData.email,
+        p_password: 'TempPassword@123', // Temporary password
+        p_full_name: formData.fullName,
+        p_phone: formData.phone,
+        p_department_id: formData.department,
+        p_employee_code: formData.employeeId
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã thêm nhân viên mới. Mật khẩu tạm: TempPassword@123'
+      });
+      
+      navigate('/hrm/employees');
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message || 'Không thể thêm nhân viên',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -102,16 +162,17 @@ const EmployeeCreate = () => {
                 <Select
                   value={formData.department}
                   onValueChange={(value) => setFormData({ ...formData, department: value })}
+                  required
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Chọn phòng ban" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sales">Kinh doanh</SelectItem>
-                    <SelectItem value="operations">Điều hành</SelectItem>
-                    <SelectItem value="transport">Vận tải</SelectItem>
-                    <SelectItem value="accounting">Kế toán</SelectItem>
-                    <SelectItem value="hrm">Nhân sự</SelectItem>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -206,12 +267,12 @@ const EmployeeCreate = () => {
             </div>
 
             <div className="flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => navigate('/hrm/employees')}>
+              <Button type="button" variant="outline" onClick={() => navigate('/hrm/employees')} disabled={loading}>
                 Hủy
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={loading}>
                 <Save className="w-4 h-4 mr-2" />
-                Lưu nhân viên
+                {loading ? 'Đang lưu...' : 'Lưu nhân viên'}
               </Button>
             </div>
           </CardContent>

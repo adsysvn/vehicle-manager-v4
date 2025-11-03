@@ -45,7 +45,7 @@ const EmployeeList = () => {
         .from('profiles')
         .select(`
           *,
-          department:departments(name)
+          departments!profiles_department_id_fkey(name)
         `)
         .order('created_at', { ascending: false });
 
@@ -56,7 +56,7 @@ const EmployeeList = () => {
         code: p.employee_code || 'N/A',
         name: p.full_name,
         position: 'Nhân viên',
-        department: p.department?.name || 'N/A',
+        department: (p.departments as any)?.name || 'N/A',
         phone: p.phone || 'N/A',
         email: p.email || 'N/A',
         status: 'active',
