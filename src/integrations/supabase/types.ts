@@ -61,6 +61,90 @@ export type Database = {
           },
         ]
       }
+      booking_confirmations: {
+        Row: {
+          booking_id: string
+          confirmation_status: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string | null
+          ctv_vehicle_id: string | null
+          driver_id: string | null
+          expires_at: string | null
+          id: string
+          notes: string | null
+          price_offer: number | null
+          updated_at: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          booking_id: string
+          confirmation_status?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string | null
+          ctv_vehicle_id?: string | null
+          driver_id?: string | null
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          price_offer?: number | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          booking_id?: string
+          confirmation_status?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string | null
+          ctv_vehicle_id?: string | null
+          driver_id?: string | null
+          expires_at?: string | null
+          id?: string
+          notes?: string | null
+          price_offer?: number | null
+          updated_at?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_confirmations_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_confirmations_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_confirmations_ctv_vehicle_id_fkey"
+            columns: ["ctv_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "ctv_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_confirmations_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_confirmations_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           base_price: number | null
@@ -306,6 +390,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ctv_vehicles: {
+        Row: {
+          brand: string
+          commission_rate: number | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          license_plate: string
+          model: string
+          notes: string | null
+          owner_email: string | null
+          owner_name: string
+          owner_phone: string
+          rating: number | null
+          seats: number
+          status: string | null
+          telegram_id: string | null
+          total_trips: number | null
+          updated_at: string | null
+          vehicle_type: string
+          year: number | null
+        }
+        Insert: {
+          brand: string
+          commission_rate?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          license_plate: string
+          model: string
+          notes?: string | null
+          owner_email?: string | null
+          owner_name: string
+          owner_phone: string
+          rating?: number | null
+          seats: number
+          status?: string | null
+          telegram_id?: string | null
+          total_trips?: number | null
+          updated_at?: string | null
+          vehicle_type: string
+          year?: number | null
+        }
+        Update: {
+          brand?: string
+          commission_rate?: number | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          license_plate?: string
+          model?: string
+          notes?: string | null
+          owner_email?: string | null
+          owner_name?: string
+          owner_phone?: string
+          rating?: number | null
+          seats?: number
+          status?: string | null
+          telegram_id?: string | null
+          total_trips?: number | null
+          updated_at?: string | null
+          vehicle_type?: string
+          year?: number | null
+        }
+        Relationships: []
       }
       customers: {
         Row: {
@@ -1487,8 +1637,10 @@ export type Database = {
         Row: {
           assigned_at: string | null
           assigned_by: string | null
+          auto_assigned: boolean | null
           booking_id: string
           created_at: string | null
+          ctv_vehicle_id: string | null
           driver_id: string
           end_mileage: number | null
           end_time: string | null
@@ -1502,8 +1654,10 @@ export type Database = {
         Insert: {
           assigned_at?: string | null
           assigned_by?: string | null
+          auto_assigned?: boolean | null
           booking_id: string
           created_at?: string | null
+          ctv_vehicle_id?: string | null
           driver_id: string
           end_mileage?: number | null
           end_time?: string | null
@@ -1517,8 +1671,10 @@ export type Database = {
         Update: {
           assigned_at?: string | null
           assigned_by?: string | null
+          auto_assigned?: boolean | null
           booking_id?: string
           created_at?: string | null
+          ctv_vehicle_id?: string | null
           driver_id?: string
           end_mileage?: number | null
           end_time?: string | null
@@ -1545,6 +1701,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vehicle_assignments_ctv_vehicle_id_fkey"
+            columns: ["ctv_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "ctv_vehicles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "vehicle_assignments_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
@@ -1556,6 +1719,60 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicle_request_notifications: {
+        Row: {
+          booking_id: string
+          created_at: string | null
+          ctv_vehicle_id: string | null
+          id: string
+          message: string
+          notification_type: string
+          read_at: string | null
+          recipient: string
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string | null
+          ctv_vehicle_id?: string | null
+          id?: string
+          message: string
+          notification_type: string
+          read_at?: string | null
+          recipient: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string | null
+          ctv_vehicle_id?: string | null
+          id?: string
+          message?: string
+          notification_type?: string
+          read_at?: string | null
+          recipient?: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_request_notifications_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_request_notifications_ctv_vehicle_id_fkey"
+            columns: ["ctv_vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "ctv_vehicles"
             referencedColumns: ["id"]
           },
         ]
@@ -1574,6 +1791,7 @@ export type Database = {
           model: string
           next_maintenance_date: string | null
           notes: string | null
+          priority: number | null
           registration_expiry: string | null
           seats: number
           status: Database["public"]["Enums"]["vehicle_status"] | null
@@ -1594,6 +1812,7 @@ export type Database = {
           model: string
           next_maintenance_date?: string | null
           notes?: string | null
+          priority?: number | null
           registration_expiry?: string | null
           seats: number
           status?: Database["public"]["Enums"]["vehicle_status"] | null
@@ -1614,6 +1833,7 @@ export type Database = {
           model?: string
           next_maintenance_date?: string | null
           notes?: string | null
+          priority?: number | null
           registration_expiry?: string | null
           seats?: number
           status?: Database["public"]["Enums"]["vehicle_status"] | null
@@ -1628,6 +1848,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_assign_vehicle_and_driver: {
+        Args: { p_booking_id: string }
+        Returns: {
+          driver_id: string
+          message: string
+          success: boolean
+          vehicle_id: string
+        }[]
+      }
       create_user_with_profile: {
         Args: {
           p_department_id: string
