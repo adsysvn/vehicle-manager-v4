@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Plus, User, Star, Phone, Car } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Driver {
   id: string;
@@ -56,8 +60,129 @@ const mockDrivers: Driver[] = [
 ];
 
 export default function DriverManagement() {
-  const [drivers] = useState<Driver[]>(mockDrivers);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'dedicated' | 'flexible'>('all');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const { toast } = useToast();
+
+  const [formData, setFormData] = useState({
+    profile_id: '',
+    license_number: '',
+    license_type: '',
+    license_expiry: '',
+    experience_years: '',
+    emergency_contact: '',
+    emergency_phone: '',
+    notes: ''
+  });
+
+  useEffect(() => {
+    fetchDrivers();
+    fetchProfiles();
+  }, []);
+
+  const fetchDrivers = async () => {
+    const { data, error } = await supabase
+      .from('drivers')
+      .select(`
+        *,
+        profiles:profile_id (
+          id,
+          full_name,
+          phone,
+          employee_code
+        )
+      `);
+    
+    if (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tải danh sách lái xe',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const statusMap: Record<string, 'available' | 'driving' | 'rest'> = {
+      'available': 'available',
+      'on_trip': 'driving',
+      'off_duty': 'rest',
+      'leave': 'rest'
+    };
+
+    const mappedDrivers = data?.map(d => ({
+      id: d.profiles?.employee_code || d.id,
+      name: d.profiles?.full_name || '',
+      phone: d.profiles?.phone || '',
+      license: `${d.license_type}`,
+      assignmentType: 'flexible' as const,
+      status: statusMap[d.status] || 'available',
+      rating: d.rating || 5.0,
+      experience: `${d.experience_years} năm`
+    })) || [];
+
+    setDrivers(mappedDrivers);
+  };
+
+  const fetchProfiles = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name, employee_code')
+      .order('full_name');
+    
+    if (data) setProfiles(data);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('drivers')
+        .insert({
+          profile_id: formData.profile_id,
+          license_number: formData.license_number,
+          license_type: formData.license_type,
+          license_expiry: formData.license_expiry,
+          experience_years: parseInt(formData.experience_years),
+          emergency_contact: formData.emergency_contact,
+          emergency_phone: formData.emergency_phone,
+          notes: formData.notes,
+          status: 'available'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã thêm lái xe mới'
+      });
+
+      setIsDialogOpen(false);
+      setFormData({
+        profile_id: '',
+        license_number: '',
+        license_type: '',
+        license_expiry: '',
+        experience_years: '',
+        emergency_contact: '',
+        emergency_phone: '',
+        notes: ''
+      });
+      fetchDrivers();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredDrivers = drivers.filter(d => 
     filterType === 'all' ? true : d.assignmentType === filterType
@@ -76,10 +201,117 @@ export default function DriverManagement() {
           <h1 className="text-3xl font-bold">Quản lý Lái xe</h1>
           <p className="text-muted-foreground mt-1">Quản lý lái xe cố định và linh hoạt</p>
         </div>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Thêm lái xe
-        </Button>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="w-4 h-4 mr-2" />
+              Thêm lái xe
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Thêm lái xe mới</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="profile_id">Nhân viên *</Label>
+                  <Select value={formData.profile_id} onValueChange={(value) => setFormData({...formData, profile_id: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn nhân viên" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {profiles.map(profile => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.employee_code} - {profile.full_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="license_number">Số bằng lái *</Label>
+                  <Input
+                    id="license_number"
+                    value={formData.license_number}
+                    onChange={(e) => setFormData({...formData, license_number: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="license_type">Hạng bằng lái *</Label>
+                  <Input
+                    id="license_type"
+                    value={formData.license_type}
+                    onChange={(e) => setFormData({...formData, license_type: e.target.value})}
+                    placeholder="B2, C, D, E"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="license_expiry">Ngày hết hạn *</Label>
+                  <Input
+                    id="license_expiry"
+                    type="date"
+                    value={formData.license_expiry}
+                    onChange={(e) => setFormData({...formData, license_expiry: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="experience_years">Số năm kinh nghiệm *</Label>
+                  <Input
+                    id="experience_years"
+                    type="number"
+                    value={formData.experience_years}
+                    onChange={(e) => setFormData({...formData, experience_years: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="emergency_contact">Người liên hệ khẩn cấp</Label>
+                  <Input
+                    id="emergency_contact"
+                    value={formData.emergency_contact}
+                    onChange={(e) => setFormData({...formData, emergency_contact: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="emergency_phone">SĐT khẩn cấp</Label>
+                  <Input
+                    id="emergency_phone"
+                    value={formData.emergency_phone}
+                    onChange={(e) => setFormData({...formData, emergency_phone: e.target.value})}
+                  />
+                </div>
+
+                <div className="space-y-2 col-span-2">
+                  <Label htmlFor="notes">Ghi chú</Label>
+                  <Input
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Hủy
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Đang lưu...' : 'Lưu'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
