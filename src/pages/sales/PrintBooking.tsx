@@ -329,25 +329,7 @@ export default function PrintBooking() {
                       ))}
                     </div>
                   </div>
-
-                  {/* Passenger List */}
-                  <div className="mb-6">
-                    <h3 className="font-bold text-sm mb-3 text-primary border-b pb-2">
-                      DANH SÁCH KHÁCH (DSK)
-                    </h3>
-                    <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">
-                      {printData.passengers.map((passenger) => (
-                        <div key={passenger.no} className="flex items-center gap-3 p-1.5 hover:bg-muted/20 rounded">
-                          <span className="w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground rounded-full text-xs font-bold">
-                            {passenger.no}
-                          </span>
-                          <span className="font-medium">{passenger.name}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Schedule Table */}
+{/* Schedule Table */}
                   <div className="mb-6">
                     <h3 className="font-bold text-sm mb-3 text-primary border-b pb-2">
                       CHƯƠNG TRÌNH TOUR CHI TIẾT
@@ -373,6 +355,24 @@ export default function PrintBooking() {
                       </tbody>
                     </table>
                   </div>
+                  {/* Passenger List */}
+                  <div className="mb-6">
+                    <h3 className="font-bold text-sm mb-3 text-primary border-b pb-2">
+                      DANH SÁCH KHÁCH (DSK)
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">
+                      {printData.passengers.map((passenger) => (
+                        <div key={passenger.no} className="flex items-center gap-3 p-1.5 hover:bg-muted/20 rounded">
+                          <span className="w-8 h-8 flex items-center justify-center bg-primary text-primary-foreground rounded-full text-xs font-bold">
+                            {passenger.no}
+                          </span>
+                          <span className="font-medium">{passenger.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  
 
                   {/* Additional Services */}
                   {booking.additionalServices && (
