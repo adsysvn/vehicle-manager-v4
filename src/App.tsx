@@ -97,6 +97,10 @@ const App = () => (
             {/* Sales Routes */}
             <Route path="sales/bookings" element={<BookingList />} />
             <Route path="sales/bookings/create" element={<BookingCreate />} />
+            <Route path="sales/bookings/:id" element={<ViewBooking />} />
+            <Route path="sales/bookings/:id/edit" element={<EditBooking />} />
+            <Route path="sales/bookings/:id/print" element={<PrintBooking />} />
+            <Route path="sales/bookings/print" element={<PrintBooking />} />
             <Route path="sales/routes" element={<RouteManagement />} />
             <Route path="sales/contracts" element={<ContractManager />} />
             <Route path="sales/contracts/create" element={<ContractCreate />} />
