@@ -25,7 +25,7 @@ import AlertsManager from "./pages/operations/AlertsManager";
 import OperationsReports from "./pages/operations/OperationsReports";
 import VehicleList from "./pages/transport/VehicleList";
 import DriverList from "./pages/transport/DriverList";
-import TransportReports from "./pages/transport/TransportReports"
+import TransportReports from "./pages/transport/TransportReports";
 import MaintenanceSchedule from "./pages/transport/MaintenanceSchedule";
 import FuelManagement from "./pages/transport/FuelManagement";
 import DebtManagement from "./pages/accounting/DebtManagement";
@@ -67,6 +67,7 @@ import OperationsPermissions from "./pages/security/OperationsPermissions";
 import MeetingRoomBooking from "./pages/requests/MeetingRoomBooking";
 import BusinessTripManagement from "./pages/requests/BusinessTripManagement";
 import OfficeShopping from "./pages/requests/OfficeShopping";
+import PrintBooking from "./pages/sales/PrintBooking";
 import RouteManagement from "./pages/sales/RouteManagement";
 import NotFound from "./pages/NotFound";
 
@@ -81,12 +82,12 @@ const App = () => (
         <Routes>
           {/* Landing Page - No Layout */}
           <Route path="/" element={<Index />} />
-          
+
           {/* App Routes - With Layout */}
           <Route path="/dashboard" element={<Layout />}>
             <Route index element={<Dashboard />} />
           </Route>
-          
+
           <Route element={<Layout />}>
             {/* Sales Routes */}
             <Route path="sales/bookings" element={<BookingList />} />
@@ -101,7 +102,7 @@ const App = () => (
             <Route path="sales/water-service" element={<WaterService />} />
             <Route path="sales/services" element={<OtherServices />} />
             <Route path="sales/reports" element={<SalesReports />} />
-            
+
             {/* Operations Routes */}
             <Route path="operations/vehicle-assignment" element={<VehicleAssignment />} />
             <Route path="operations/booking-management" element={<BookingManagement />} />
@@ -114,7 +115,7 @@ const App = () => (
             <Route path="operations/ctv-tracking" element={<CTVTracking />} />
             <Route path="operations/alerts" element={<AlertsManager />} />
             <Route path="operations/reports" element={<OperationsReports />} />
-            
+
             {/* Transport Routes */}
             <Route path="transport/vehicles" element={<VehicleList />} />
             <Route path="transport/drivers" element={<DriverList />} />
@@ -124,10 +125,10 @@ const App = () => (
             <Route path="transport/fuel" element={<FuelManagement />} />
             <Route path="transport/registration" element={<VehicleRegistration />} />
             <Route path="transport/insurance" element={<VehicleInsurance />} />
-             <Route path="operations/alerts" element={<AlertsManager />} />
+            <Route path="operations/alerts" element={<AlertsManager />} />
             <Route path="transport/other-services" element={<TransportOtherServices />} />
             <Route path="transport/reports" element={<TransportReports />} />
-            
+
             {/* Accounting Routes */}
             <Route path="accounting/debts" element={<DebtManagement />} />
             <Route path="accounting/invoices" element={<InvoiceManager />} />
@@ -135,7 +136,7 @@ const App = () => (
             <Route path="accounting/invoice-sync" element={<InvoiceEmailSync />} />
             <Route path="accounting/payroll" element={<PayrollManager />} />
             <Route path="accounting/reports" element={<FinancialReports />} />
-            
+
             {/* HRM Routes */}
             <Route path="hrm/employees" element={<EmployeeList />} />
             <Route path="hrm/employees/create" element={<EmployeeCreate />} />
@@ -147,13 +148,13 @@ const App = () => (
             <Route path="hrm/degrees" element={<Degrees />} />
             <Route path="hrm/contracts" element={<Contracts />} />
             <Route path="hrm/certificates" element={<Certificates />} />
-            
+
             {/* Security Routes */}
             <Route path="security/roles" element={<RoleManagement />} />
             <Route path="security/departments" element={<DepartmentManagement />} />
             <Route path="security/permissions" element={<PermissionManagement />} />
             <Route path="security/operations-permissions" element={<OperationsPermissions />} />
-            
+
             {/* KPI Routes */}
             <Route path="kpi/strategy" element={<CompanyStrategy />} />
             <Route path="kpi/bsc" element={<BSCPerspectives />} />
@@ -161,13 +162,13 @@ const App = () => (
             <Route path="kpi/department" element={<DepartmentKPI />} />
             <Route path="kpi/individual" element={<IndividualKPI />} />
             <Route path="kpi/dashboard" element={<KPIDashboard />} />
-            
+
             {/* Request Routes */}
             <Route path="requests/meeting-room" element={<MeetingRoomBooking />} />
             <Route path="requests/business-trip" element={<BusinessTripManagement />} />
             <Route path="requests/office-shopping" element={<OfficeShopping />} />
           </Route>
-          
+
           {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
