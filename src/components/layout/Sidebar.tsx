@@ -69,7 +69,7 @@ const menuItems = [
     color: 'text-orange-500',
     submenu: [
       { title: 'Phân xe & lái xe', href: '/operations/vehicle-assignment', icon: Car },
-      { title: 'Quản lý booking', href: '/operations/booking-management', icon: FileText },
+      { title: 'Quản lý đoàn (booking)', href: '/operations/booking-management', icon: FileText },
       { title: 'Giấy đi đường', href: '/operations/travel-documents', icon: FileText },
       // { title: 'Hành trình đa điểm', href: '/operations/multi-stop-booking', icon: MapPin },
       { title: 'Giám sát GPS', href: '/operations/gps-monitor', icon: MapPin },
