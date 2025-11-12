@@ -321,7 +321,7 @@ const VehicleAssignment = () => {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Booking chờ phân</CardTitle>
+            <CardTitle className="text-sm font-medium">Booking chờ sắp xếp</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{filteredBookings.length}</div>
