@@ -7,6 +7,8 @@ import { Layout } from "./components/layout/Layout";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import BookingList from "./pages/sales/BookingList";
+import BookingCreate from "./pages/sales/BookingCreate";
+import CustomerManagement from "./pages/sales/CustomerManagement";
 import ContractManager from "./pages/sales/ContractManager";
 import ContractCreate from "./pages/sales/ContractCreate";
 import CustomerCare from "./pages/sales/CustomerCare";
@@ -15,6 +17,9 @@ import TowelService from "./pages/sales/TowelService";
 import WaterService from "./pages/sales/WaterService";
 import OtherServices from "./pages/sales/OtherServices";
 import SalesReports from "./pages/sales/SalesReports";
+import PrintBooking from "./pages/sales/PrintBooking";
+import ViewBooking from "./pages/sales/ViewBooking";
+import EditBooking from "./pages/sales/EditBooking";
 import VehicleAssignment from "./pages/operations/VehicleAssignment";
 import GPSMonitor from "./pages/operations/GPSMonitor";
 import IncidentManager from "./pages/operations/IncidentManager";
@@ -53,13 +58,13 @@ import KPIManagement from "./pages/kpi/KPIManagement";
 import DepartmentKPI from "./pages/kpi/DepartmentKPI";
 import IndividualKPI from "./pages/kpi/IndividualKPI";
 import KPIDashboard from "./pages/kpi/KPIDashboard";
-import CustomerManagement from "./pages/sales/CustomerManagement";
+
 import PricingPerKm from "./pages/transport/PricingPerKm";
 import ExpenseManagement from "./pages/accounting/ExpenseManagement";
 import OperationsTravelDocuments from "./pages/operations/TravelDocuments";
 import BookingManagement from "./pages/operations/BookingManagement";
 import MultiStopBooking from "./pages/operations/MultiStopBooking";
-import BookingCreate from "./pages/sales/BookingCreate";
+
 import DriverManagement from "./pages/transport/DriverManagement";
 import InvoiceEmailSync from "./pages/accounting/InvoiceEmailSync";
 import HrmDepartmentManagement from "./pages/hrm/DepartmentManagement";
@@ -67,7 +72,7 @@ import OperationsPermissions from "./pages/security/OperationsPermissions";
 import MeetingRoomBooking from "./pages/requests/MeetingRoomBooking";
 import BusinessTripManagement from "./pages/requests/BusinessTripManagement";
 import OfficeShopping from "./pages/requests/OfficeShopping";
-import PrintBooking from "./pages/sales/PrintBooking";
+
 import RouteManagement from "./pages/sales/RouteManagement";
 import NotFound from "./pages/NotFound";
 
