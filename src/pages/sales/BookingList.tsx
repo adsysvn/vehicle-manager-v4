@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Filter, Eye, Edit, Trash2, Calendar, X, User, Phone, Users, Plane, Printer } from 'lucide-react';
 import { format } from 'date-fns';
@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import {
   Table,
   TableBody,
@@ -154,6 +157,7 @@ const statusConfig = {
 
 export default function BookingList() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [groupCodeFilter, setGroupCodeFilter] = useState('');
@@ -166,7 +170,32 @@ export default function BookingList() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [editForm, setEditForm] = useState<any>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<any[]>([]);
   const printRef = useRef<HTMLDivElement>(null);
+
+  // Fetch customers and routes for edit form
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: customersData } = await supabase
+        .from('customers')
+        .select('*')
+        .order('name');
+      
+      const { data: routesData } = await supabase
+        .from('routes')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      
+      if (customersData) setCustomers(customersData);
+      if (routesData) setRoutes(routesData);
+    };
+    
+    fetchData();
+  }, []);
 
   // Get unique values for filters
   const uniqueDrivers = Array.from(
@@ -231,7 +260,70 @@ export default function BookingList() {
 
   const handleEdit = (booking: any) => {
     setSelectedBooking(booking);
+    setEditForm({
+      customer_id: booking.customer_id || '',
+      route_id: booking.route_id || '',
+      pickup_location: booking.pickup_location || '',
+      dropoff_location: booking.dropoff_location || '',
+      pickup_datetime: booking.pickup_datetime ? new Date(booking.pickup_datetime).toISOString().slice(0, 16) : '',
+      estimated_duration: booking.estimated_duration || '',
+      passenger_count: booking.passenger_count || '',
+      distance_km: booking.distance_km || '',
+      base_price: booking.base_price || '',
+      total_price: booking.total_price || '',
+      status: booking.status || 'pending',
+      notes: booking.notes || '',
+      special_requests: booking.special_requests || ''
+    });
     setEditDialogOpen(true);
+  };
+
+  const handleUpdateBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBooking) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('bookings')
+        .update({
+          customer_id: editForm.customer_id,
+          route_id: editForm.route_id || null,
+          pickup_location: editForm.pickup_location,
+          dropoff_location: editForm.dropoff_location,
+          pickup_datetime: editForm.pickup_datetime,
+          estimated_duration: editForm.estimated_duration ? parseInt(editForm.estimated_duration) : null,
+          passenger_count: editForm.passenger_count ? parseInt(editForm.passenger_count) : 1,
+          distance_km: editForm.distance_km ? parseFloat(editForm.distance_km) : null,
+          base_price: editForm.base_price ? parseFloat(editForm.base_price) : null,
+          total_price: editForm.total_price ? parseFloat(editForm.total_price) : null,
+          status: editForm.status,
+          notes: editForm.notes || null,
+          special_requests: editForm.special_requests || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedBooking.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Cập nhật booking thành công',
+      });
+
+      setEditDialogOpen(false);
+      // Reload the page to show updated data
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Error updating booking:', error);
+      toast({
+        title: 'Lỗi',
+        description: error.message || 'Không thể cập nhật booking',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handlePrint = () => {
@@ -780,19 +872,207 @@ export default function BookingList() {
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Chỉnh sửa Booking - {selectedBooking?.id}</DialogTitle>
+            <DialogTitle>Chỉnh sửa Booking - {selectedBooking?.booking_number}</DialogTitle>
           </DialogHeader>
-          <div className="text-center py-8 text-muted-foreground">
-            <p>Chức năng chỉnh sửa đang được phát triển</p>
-            <Button className="mt-4" onClick={() => {
-              setEditDialogOpen(false);
-              navigate('/sales/bookings/create');
-            }}>
-              Tạo booking mới
-            </Button>
-          </div>
+          
+          {selectedBooking && (
+            <form onSubmit={handleUpdateBooking} className="space-y-6">
+              {/* Customer Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="customer_id">Khách hàng *</Label>
+                <Select 
+                  value={editForm.customer_id} 
+                  onValueChange={(value) => setEditForm({ ...editForm, customer_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn khách hàng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((customer) => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name} - {customer.phone}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Route Selection */}
+              <div className="space-y-2">
+                <Label htmlFor="route_id">Tuyến đường (tùy chọn)</Label>
+                <Select 
+                  value={editForm.route_id} 
+                  onValueChange={(value) => setEditForm({ ...editForm, route_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn tuyến đường" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Không chọn</SelectItem>
+                    {routes.map((route) => (
+                      <SelectItem key={route.id} value={route.id}>
+                        {route.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Locations */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pickup_location">Điểm đón *</Label>
+                  <Input
+                    id="pickup_location"
+                    value={editForm.pickup_location}
+                    onChange={(e) => setEditForm({ ...editForm, pickup_location: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dropoff_location">Điểm trả *</Label>
+                  <Input
+                    id="dropoff_location"
+                    value={editForm.dropoff_location}
+                    onChange={(e) => setEditForm({ ...editForm, dropoff_location: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Datetime and Duration */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pickup_datetime">Thời gian đón *</Label>
+                  <Input
+                    id="pickup_datetime"
+                    type="datetime-local"
+                    value={editForm.pickup_datetime}
+                    onChange={(e) => setEditForm({ ...editForm, pickup_datetime: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="estimated_duration">Thời gian ước tính (phút)</Label>
+                  <Input
+                    id="estimated_duration"
+                    type="number"
+                    value={editForm.estimated_duration}
+                    onChange={(e) => setEditForm({ ...editForm, estimated_duration: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Passenger Count and Distance */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="passenger_count">Số lượng khách *</Label>
+                  <Input
+                    id="passenger_count"
+                    type="number"
+                    min="1"
+                    value={editForm.passenger_count}
+                    onChange={(e) => setEditForm({ ...editForm, passenger_count: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="distance_km">Khoảng cách (km)</Label>
+                  <Input
+                    id="distance_km"
+                    type="number"
+                    step="0.1"
+                    value={editForm.distance_km}
+                    onChange={(e) => setEditForm({ ...editForm, distance_km: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Pricing */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="base_price">Giá cơ bản (VNĐ)</Label>
+                  <Input
+                    id="base_price"
+                    type="number"
+                    step="1000"
+                    value={editForm.base_price}
+                    onChange={(e) => setEditForm({ ...editForm, base_price: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="total_price">Tổng giá (VNĐ)</Label>
+                  <Input
+                    id="total_price"
+                    type="number"
+                    step="1000"
+                    value={editForm.total_price}
+                    onChange={(e) => setEditForm({ ...editForm, total_price: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              {/* Status */}
+              <div className="space-y-2">
+                <Label htmlFor="status">Trạng thái *</Label>
+                <Select 
+                  value={editForm.status} 
+                  onValueChange={(value) => setEditForm({ ...editForm, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Chờ xử lý</SelectItem>
+                    <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                    <SelectItem value="assigned">Đã phân xe</SelectItem>
+                    <SelectItem value="in_progress">Đang thực hiện</SelectItem>
+                    <SelectItem value="completed">Hoàn thành</SelectItem>
+                    <SelectItem value="cancelled">Đã hủy</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Ghi chú</Label>
+                <Textarea
+                  id="notes"
+                  value={editForm.notes}
+                  onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                  rows={3}
+                />
+              </div>
+
+              {/* Special Requests */}
+              <div className="space-y-2">
+                <Label htmlFor="special_requests">Yêu cầu đặc biệt</Label>
+                <Textarea
+                  id="special_requests"
+                  value={editForm.special_requests}
+                  onChange={(e) => setEditForm({ ...editForm, special_requests: e.target.value })}
+                  rows={2}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-2 pt-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setEditDialogOpen(false)}
+                  disabled={isSubmitting}
+                >
+                  Hủy
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Đang cập nhật...' : 'Cập nhật'}
+                </Button>
+              </div>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
