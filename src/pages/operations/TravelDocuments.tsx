@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, FileText, Printer, Download, Calendar } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import TravelDocumentPrintDialog from '@/components/operations/TravelDocumentPrintDialog';
 
 interface TravelDocument {
   id: string;
@@ -72,13 +73,12 @@ const mockDocuments: TravelDocument[] = [
 export default function TravelDocuments() {
   const [documents, setDocuments] = useState<TravelDocument[]>(mockDocuments);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<TravelDocument | null>(null);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
 
-  const handlePrint = (id: string) => {
-    alert(`In giấy đi đường ${id}`);
-  };
-
-  const handleExport = (id: string) => {
-    alert(`Xuất file PDF giấy đi đường ${id}`);
+  const handlePrint = (doc: TravelDocument) => {
+    setSelectedDocument(doc);
+    setIsPrintDialogOpen(true);
   };
 
   return (
@@ -325,16 +325,10 @@ export default function TravelDocuments() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => handlePrint(doc.id)}
+                        onClick={() => handlePrint(doc)}
+                        title="In giấy đi đường"
                       >
                         <Printer className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleExport(doc.id)}
-                      >
-                        <Download className="w-4 h-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -344,6 +338,12 @@ export default function TravelDocuments() {
           </Table>
         </CardContent>
       </Card>
+
+      <TravelDocumentPrintDialog
+        document={selectedDocument}
+        open={isPrintDialogOpen}
+        onOpenChange={setIsPrintDialogOpen}
+      />
     </div>
   );
 }
