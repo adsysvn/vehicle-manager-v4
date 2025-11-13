@@ -457,6 +457,59 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_care_notes: {
+        Row: {
+          contact_type: string
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          id: string
+          next_action: string | null
+          next_action_date: string | null
+          note: string
+          priority: string | null
+          status: string | null
+          subject: string
+          updated_at: string | null
+        }
+        Insert: {
+          contact_type: string
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          note: string
+          priority?: string | null
+          status?: string | null
+          subject: string
+          updated_at?: string | null
+        }
+        Update: {
+          contact_type?: string
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          next_action?: string | null
+          next_action_date?: string | null
+          note?: string
+          priority?: string | null
+          status?: string | null
+          subject?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_care_notes_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customers: {
         Row: {
           address: string | null
@@ -1373,6 +1426,59 @@ export type Database = {
         }
         Relationships: []
       }
+      positions: {
+        Row: {
+          code: string
+          created_at: string | null
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          level: string | null
+          max_salary: number | null
+          min_salary: number | null
+          name: string
+          requirements: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          level?: string | null
+          max_salary?: number | null
+          min_salary?: number | null
+          name: string
+          requirements?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          level?: string | null
+          max_salary?: number | null
+          min_salary?: number | null
+          name?: string
+          requirements?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "positions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -1386,6 +1492,7 @@ export type Database = {
           hire_date: string | null
           id: string
           phone: string | null
+          position_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1400,6 +1507,7 @@ export type Database = {
           hire_date?: string | null
           id: string
           phone?: string | null
+          position_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1414,6 +1522,7 @@ export type Database = {
           hire_date?: string | null
           id?: string
           phone?: string | null
+          position_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1422,6 +1531,88 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quotations: {
+        Row: {
+          cargo_type: string | null
+          created_at: string | null
+          created_by: string | null
+          customer_id: string
+          distance_km: number | null
+          dropoff_location: string
+          id: string
+          notes: string | null
+          pickup_location: string
+          quotation_number: string
+          route_id: string | null
+          status: string | null
+          total_price: number
+          unit_price: number
+          updated_at: string | null
+          valid_until: string
+          weight: string | null
+        }
+        Insert: {
+          cargo_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_id: string
+          distance_km?: number | null
+          dropoff_location: string
+          id?: string
+          notes?: string | null
+          pickup_location: string
+          quotation_number: string
+          route_id?: string | null
+          status?: string | null
+          total_price: number
+          unit_price: number
+          updated_at?: string | null
+          valid_until: string
+          weight?: string | null
+        }
+        Update: {
+          cargo_type?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          customer_id?: string
+          distance_km?: number | null
+          dropoff_location?: string
+          id?: string
+          notes?: string | null
+          pickup_location?: string
+          quotation_number?: string
+          route_id?: string | null
+          status?: string | null
+          total_price?: number
+          unit_price?: number
+          updated_at?: string | null
+          valid_until?: string
+          weight?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotations_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotations_route_id_fkey"
+            columns: ["route_id"]
+            isOneToOne: false
+            referencedRelation: "routes"
             referencedColumns: ["id"]
           },
         ]

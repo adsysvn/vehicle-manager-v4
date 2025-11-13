@@ -15,7 +15,12 @@ import { Badge } from '@/components/ui/badge';
 
 export function Header() {
   return (
-    <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between">
+    <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between header-with-logo">
+      {/* Company Logo */}
+      <div className="flex items-center gap-4">
+        <div className="company-logo"></div>
+      </div>
+      
       {/* Search */}
       <div className="flex-1 max-w-md">
         <div className="relative">

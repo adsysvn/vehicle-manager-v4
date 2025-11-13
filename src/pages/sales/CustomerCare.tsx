@@ -1,5 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus, Filter, Phone, Mail, Calendar, MessageSquare, Star } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -172,11 +176,106 @@ const statusConfig = {
 };
 
 export default function CustomerCare() {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('customers');
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [newNote, setNewNote] = useState('');
+  const [isNoteDialogOpen, setIsNoteDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dbCustomers, setDbCustomers] = useState<any[]>([]);
+  const [careNotes, setCareNotes] = useState<any[]>([]);
+
+  const [noteFormData, setNoteFormData] = useState({
+    customer_id: '',
+    contact_type: 'Cuộc gọi',
+    subject: '',
+    note: '',
+    next_action: '',
+    next_action_date: '',
+    priority: 'medium'
+  });
+
+  useEffect(() => {
+    fetchCustomers();
+    fetchCareNotes();
+  }, []);
+
+  const fetchCustomers = async () => {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, contact_person, phone, email')
+      .order('name');
+    if (data) setDbCustomers(data);
+  };
+
+  const fetchCareNotes = async () => {
+    const { data, error } = await supabase
+      .from('customer_care_notes')
+      .select(`
+        *,
+        customers!customer_care_notes_customer_id_fkey (name, contact_person)
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tải ghi chú chăm sóc',
+        variant: 'destructive'
+      });
+      return;
+    }
+    setCareNotes(data || []);
+  };
+
+  const handleNoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const { error } = await supabase
+        .from('customer_care_notes')
+        .insert({
+          customer_id: noteFormData.customer_id,
+          contact_type: noteFormData.contact_type,
+          subject: noteFormData.subject,
+          note: noteFormData.note,
+          next_action: noteFormData.next_action || null,
+          next_action_date: noteFormData.next_action_date || null,
+          priority: noteFormData.priority,
+          status: 'completed'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã thêm ghi chú chăm sóc khách hàng'
+      });
+
+      setIsNoteDialogOpen(false);
+      setNoteFormData({
+        customer_id: '',
+        contact_type: 'Cuộc gọi',
+        subject: '',
+        note: '',
+        next_action: '',
+        next_action_date: '',
+        priority: 'medium'
+      });
+      fetchCareNotes();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredCustomers = customers.filter(customer => {
     const matchesSearch = 
@@ -224,10 +323,117 @@ export default function CustomerCare() {
             <Phone className="w-4 h-4 mr-2" />
             Cuộc gọi mới
           </Button>
-          <Button className="bg-primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Thêm ghi chú
-          </Button>
+          <Dialog open={isNoteDialogOpen} onOpenChange={setIsNoteDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary">
+                <Plus className="w-4 h-4 mr-2" />
+                Thêm ghi chú
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Thêm ghi chú chăm sóc khách hàng</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleNoteSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="customer_id">Khách hàng *</Label>
+                    <Select value={noteFormData.customer_id} onValueChange={(value) => setNoteFormData({...noteFormData, customer_id: value})} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Chọn khách hàng" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {dbCustomers.map(customer => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_type">Loại liên hệ *</Label>
+                    <Select value={noteFormData.contact_type} onValueChange={(value) => setNoteFormData({...noteFormData, contact_type: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Cuộc gọi">Cuộc gọi</SelectItem>
+                        <SelectItem value="Email">Email</SelectItem>
+                        <SelectItem value="Gặp mặt">Gặp mặt</SelectItem>
+                        <SelectItem value="Tin nhắn">Tin nhắn</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="subject">Tiêu đề *</Label>
+                    <Input
+                      id="subject"
+                      value={noteFormData.subject}
+                      onChange={(e) => setNoteFormData({...noteFormData, subject: e.target.value})}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="note">Nội dung ghi chú *</Label>
+                    <Textarea
+                      id="note"
+                      value={noteFormData.note}
+                      onChange={(e) => setNoteFormData({...noteFormData, note: e.target.value})}
+                      rows={4}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="priority">Độ ưu tiên</Label>
+                    <Select value={noteFormData.priority} onValueChange={(value) => setNoteFormData({...noteFormData, priority: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Thấp</SelectItem>
+                        <SelectItem value="medium">Trung bình</SelectItem>
+                        <SelectItem value="high">Cao</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="next_action_date">Ngày hành động tiếp theo</Label>
+                    <Input
+                      id="next_action_date"
+                      type="date"
+                      value={noteFormData.next_action_date}
+                      onChange={(e) => setNoteFormData({...noteFormData, next_action_date: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="space-y-2 col-span-2">
+                    <Label htmlFor="next_action">Hành động tiếp theo</Label>
+                    <Textarea
+                      id="next_action"
+                      value={noteFormData.next_action}
+                      onChange={(e) => setNoteFormData({...noteFormData, next_action: e.target.value})}
+                      rows={2}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsNoteDialogOpen(false)}>
+                    Hủy
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? 'Đang lưu...' : 'Lưu ghi chú'}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 

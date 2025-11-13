@@ -72,6 +72,7 @@ import OperationsPermissions from "./pages/security/OperationsPermissions";
 import MeetingRoomBooking from "./pages/requests/MeetingRoomBooking";
 import BusinessTripManagement from "./pages/requests/BusinessTripManagement";
 import OfficeShopping from "./pages/requests/OfficeShopping";
+import PositionManagement from "./pages/hrm/PositionManagement";
 
 import RouteManagement from "./pages/sales/RouteManagement";
 import NotFound from "./pages/NotFound";
@@ -152,6 +153,7 @@ const App = () => (
             <Route path="hrm/attendance" element={<Attendance />} />
             <Route path="hrm/leave" element={<LeaveManagement />} />
             <Route path="hrm/departments" element={<HrmDepartmentManagement />} />
+            <Route path="hrm/positions" element={<PositionManagement />} />
             <Route path="hrm/task-assignment" element={<TaskAssignment />} />
             <Route path="hrm/document-approval" element={<DocumentApproval />} />
             <Route path="hrm/degrees" element={<Degrees />} />

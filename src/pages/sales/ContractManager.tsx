@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Plus, Filter, Eye, Edit, Trash2, FileText, Calendar, DollarSign } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,9 +115,131 @@ const statusConfig = {
 
 export default function ContractManager() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('contracts');
+  const [isQuoteDialogOpen, setIsQuoteDialogOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [quotations, setQuotations] = useState<any[]>([]);
+
+  const [quoteFormData, setQuoteFormData] = useState({
+    customer_id: '',
+    route_id: '',
+    pickup_location: '',
+    dropoff_location: '',
+    cargo_type: '',
+    weight: '',
+    distance_km: '',
+    unit_price: '',
+    total_price: '',
+    valid_until: '',
+    notes: ''
+  });
+
+  useEffect(() => {
+    fetchCustomers();
+    fetchRoutes();
+    fetchQuotations();
+  }, []);
+
+  const fetchCustomers = async () => {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, name, contact_person')
+      .order('name');
+    if (data) setCustomers(data);
+  };
+
+  const fetchRoutes = async () => {
+    const { data } = await supabase
+      .from('routes')
+      .select('id, name, from_location, to_location, distance_km')
+      .eq('is_active', true)
+      .order('name');
+    if (data) setRoutes(data);
+  };
+
+  const fetchQuotations = async () => {
+    const { data, error } = await supabase
+      .from('quotations')
+      .select(`
+        *,
+        customers!quotations_customer_id_fkey (name, contact_person),
+        routes!quotations_route_id_fkey (name)
+      `)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể tải danh sách báo giá',
+        variant: 'destructive'
+      });
+      return;
+    }
+    setQuotations(data || []);
+  };
+
+  const handleQuoteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const quotationNumber = `BG${Date.now().toString().slice(-6)}`;
+      
+      const { error } = await supabase
+        .from('quotations')
+        .insert({
+          quotation_number: quotationNumber,
+          customer_id: quoteFormData.customer_id,
+          route_id: quoteFormData.route_id || null,
+          pickup_location: quoteFormData.pickup_location,
+          dropoff_location: quoteFormData.dropoff_location,
+          cargo_type: quoteFormData.cargo_type || null,
+          weight: quoteFormData.weight || null,
+          distance_km: quoteFormData.distance_km ? parseFloat(quoteFormData.distance_km) : null,
+          unit_price: parseFloat(quoteFormData.unit_price),
+          total_price: parseFloat(quoteFormData.total_price),
+          valid_until: quoteFormData.valid_until,
+          notes: quoteFormData.notes || null,
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Thành công',
+        description: 'Đã tạo báo giá mới'
+      });
+
+      setIsQuoteDialogOpen(false);
+      setQuoteFormData({
+        customer_id: '',
+        route_id: '',
+        pickup_location: '',
+        dropoff_location: '',
+        cargo_type: '',
+        weight: '',
+        distance_km: '',
+        unit_price: '',
+        total_price: '',
+        valid_until: '',
+        notes: ''
+      });
+      fetchQuotations();
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const filteredContracts = contracts.filter(contract => {
     const matchesSearch = 
@@ -125,11 +252,10 @@ export default function ContractManager() {
     return matchesSearch && matchesStatus;
   });
 
-  const filteredQuotes = quotes.filter(quote => {
+  const filteredQuotes = quotations.filter(quote => {
     const matchesSearch = 
-      quote.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quote.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      quote.contact.toLowerCase().includes(searchTerm.toLowerCase());
+      quote.quotation_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (quote.customers as any)?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || quote.status === statusFilter;
     
@@ -278,17 +404,17 @@ export default function ContractManager() {
           <>
             <Card>
               <CardContent className="p-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-primary">{quotes.length}</div>
-                  <div className="text-sm text-muted-foreground">Tổng báo giá</div>
-                </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">{quotations.length}</div>
+              <div className="text-sm text-muted-foreground">Tổng báo giá</div>
+            </div>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">
-                    {quotes.filter(q => q.status === 'approved').length}
+                    {quotations.filter(q => q.status === 'approved').length}
                   </div>
                   <div className="text-sm text-muted-foreground">Đã duyệt</div>
                 </div>
@@ -298,7 +424,7 @@ export default function ContractManager() {
               <CardContent className="p-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-yellow-600">
-                    {quotes.filter(q => q.status === 'pending').length}
+                    {quotations.filter(q => q.status === 'pending').length}
                   </div>
                   <div className="text-sm text-muted-foreground">Chờ duyệt</div>
                 </div>
@@ -308,7 +434,7 @@ export default function ContractManager() {
               <CardContent className="p-4">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-success">
-                    {formatCurrency(quotes.reduce((sum, q) => sum + q.totalPrice, 0))}
+                    {formatCurrency(quotations.reduce((sum, q) => sum + q.total_price, 0))}
                   </div>
                   <div className="text-sm text-muted-foreground">Tổng giá trị</div>
                 </div>
@@ -410,23 +536,23 @@ export default function ContractManager() {
               <TableBody>
                 {filteredQuotes.map((quote) => (
                   <TableRow key={quote.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{quote.id}</TableCell>
+                    <TableCell className="font-medium">{quote.quotation_number}</TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{quote.customer}</div>
-                        <div className="text-sm text-muted-foreground">{quote.contact}</div>
+                        <div className="font-medium">{(quote.customers as any)?.name}</div>
+                        <div className="text-sm text-muted-foreground">{(quote.customers as any)?.contact_person}</div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{quote.route}</div>
-                        <div className="text-sm text-muted-foreground">{quote.distance}</div>
+                        <div className="font-medium">{(quote.routes as any)?.name || 'N/A'}</div>
+                        <div className="text-sm text-muted-foreground">{quote.distance_km ? `${quote.distance_km}km` : ''}</div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{quote.cargoType}</div>
-                        <div className="text-sm text-muted-foreground">{quote.weight}</div>
+                        <div className="font-medium">{quote.cargo_type || 'N/A'}</div>
+                        <div className="text-sm text-muted-foreground">{quote.weight || ''}</div>
                       </div>
                     </TableCell>
                     <TableCell>
