@@ -90,6 +90,7 @@ const menuItems = [
       // { title: 'Hồ sơ lái xe', href: '/transport/drivers', icon: Users },
       { title: 'Quản lý lái xe', href: '/transport/driver-management', icon: UserCog },
       { title: 'Lịch bảo dưỡng', href: '/transport/maintenance', icon: Settings },
+      { title: 'Quản lý thay dầu', href: '/transport/oil-management', icon: Droplet },
       { title: 'Quản lý nhiên liệu', href: '/transport/fuel', icon: Fuel },
       { title: 'Quản lý đăng kiểm', href: '/transport/registration', icon: FileText },
       { title: 'Quản lý bảo hiểm', href: '/transport/insurance', icon: Shield },
