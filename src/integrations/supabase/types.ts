@@ -826,6 +826,85 @@ export type Database = {
           },
         ]
       }
+      gps_tracking: {
+        Row: {
+          accuracy: number | null
+          address: string | null
+          altitude: number | null
+          booking_id: string | null
+          created_at: string
+          driver_id: string | null
+          fuel_level: number | null
+          heading: number | null
+          id: string
+          latitude: number
+          longitude: number
+          mileage: number | null
+          recorded_at: string
+          speed: number | null
+          status: string | null
+          vehicle_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          address?: string | null
+          altitude?: number | null
+          booking_id?: string | null
+          created_at?: string
+          driver_id?: string | null
+          fuel_level?: number | null
+          heading?: number | null
+          id?: string
+          latitude: number
+          longitude: number
+          mileage?: number | null
+          recorded_at?: string
+          speed?: number | null
+          status?: string | null
+          vehicle_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          address?: string | null
+          altitude?: number | null
+          booking_id?: string | null
+          created_at?: string
+          driver_id?: string | null
+          fuel_level?: number | null
+          heading?: number | null
+          id?: string
+          latitude?: number
+          longitude?: number
+          mileage?: number | null
+          recorded_at?: string
+          speed?: number | null
+          status?: string | null
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gps_tracking_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gps_tracking_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gps_tracking_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       incidents: {
         Row: {
           booking_id: string | null
@@ -1426,6 +1505,145 @@ export type Database = {
         }
         Relationships: []
       }
+      oil_change_records: {
+        Row: {
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          date: string
+          filter_changed: boolean | null
+          id: string
+          mileage: number
+          next_change_date: string | null
+          next_change_mileage: number | null
+          notes: string | null
+          oil_brand: string | null
+          oil_type: string
+          quantity_liters: number
+          service_provider: string | null
+          technician_name: string | null
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          date: string
+          filter_changed?: boolean | null
+          id?: string
+          mileage: number
+          next_change_date?: string | null
+          next_change_mileage?: number | null
+          notes?: string | null
+          oil_brand?: string | null
+          oil_type: string
+          quantity_liters: number
+          service_provider?: string | null
+          technician_name?: string | null
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          filter_changed?: boolean | null
+          id?: string
+          mileage?: number
+          next_change_date?: string | null
+          next_change_mileage?: number | null
+          notes?: string | null
+          oil_brand?: string | null
+          oil_type?: string
+          quantity_liters?: number
+          service_provider?: string | null
+          technician_name?: string | null
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oil_change_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oil_change_records_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_records: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_method: string
+          reference_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          payment_date: string
+          payment_method: string
+          reference_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method?: string
+          reference_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       positions: {
         Row: {
           code: string
@@ -1824,6 +2042,76 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          driver_id: string | null
+          due_date: string | null
+          id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          title: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          driver_id?: string | null
+          due_date?: string | null
+          id?: string
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          driver_id?: string | null
+          due_date?: string | null
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_alerts_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicle_alerts_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_assignments: {
         Row: {
           assigned_at: string | null
@@ -2059,6 +2347,7 @@ export type Database = {
         }
         Returns: string
       }
+      create_vehicle_alerts: { Args: never; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

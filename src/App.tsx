@@ -33,6 +33,7 @@ import DriverList from "./pages/transport/DriverList";
 import TransportReports from "./pages/transport/TransportReports";
 import MaintenanceSchedule from "./pages/transport/MaintenanceSchedule";
 import FuelManagement from "./pages/transport/FuelManagement";
+import OilManagement from "./pages/transport/OilManagement";
 import DebtManagement from "./pages/accounting/DebtManagement";
 import InvoiceManager from "./pages/accounting/InvoiceManager";
 import PayrollManager from "./pages/accounting/PayrollManager";
@@ -132,10 +133,10 @@ const App = () => (
             <Route path="transport/driver-management" element={<DriverManagement />} />
             <Route path="transport/pricing" element={<PricingPerKm />} />
             <Route path="transport/maintenance" element={<MaintenanceSchedule />} />
+            <Route path="transport/oil-management" element={<OilManagement />} />
             <Route path="transport/fuel" element={<FuelManagement />} />
             <Route path="transport/registration" element={<VehicleRegistration />} />
             <Route path="transport/insurance" element={<VehicleInsurance />} />
-            <Route path="operations/alerts" element={<AlertsManager />} />
             <Route path="transport/other-services" element={<TransportOtherServices />} />
             <Route path="transport/reports" element={<TransportReports />} />
 
