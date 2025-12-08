@@ -6,26 +6,20 @@ interface ExportColumn {
   width?: number;
 }
 
+// Simple export - data already has headers as keys
 export function exportToExcel(
   data: any[],
-  columns: ExportColumn[],
   fileName: string,
   sheetName: string = 'Sheet1'
 ) {
-  // Transform data to match columns
-  const exportData = data.map(row => {
-    const transformedRow: any = {};
-    columns.forEach(col => {
-      transformedRow[col.header] = row[col.key] || '';
-    });
-    return transformedRow;
-  });
+  if (data.length === 0) return;
 
-  // Create worksheet
-  const ws = XLSX.utils.json_to_sheet(exportData);
+  // Create worksheet directly from data (keys become headers)
+  const ws = XLSX.utils.json_to_sheet(data);
 
-  // Set column widths
-  ws['!cols'] = columns.map(col => ({ wch: col.width || 15 }));
+  // Auto-size columns based on header length
+  const headers = Object.keys(data[0] || {});
+  ws['!cols'] = headers.map(h => ({ wch: Math.max(h.length + 2, 15) }));
 
   // Create workbook
   const wb = XLSX.utils.book_new();
@@ -35,10 +29,34 @@ export function exportToExcel(
   XLSX.writeFile(wb, `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
+// Advanced export with column definitions
+export function exportToExcelWithColumns(
+  data: any[],
+  columns: ExportColumn[],
+  fileName: string,
+  sheetName: string = 'Sheet1'
+) {
+  const exportData = data.map(row => {
+    const transformedRow: any = {};
+    columns.forEach(col => {
+      transformedRow[col.header] = row[col.key] || '';
+    });
+    return transformedRow;
+  });
+
+  const ws = XLSX.utils.json_to_sheet(exportData);
+  ws['!cols'] = columns.map(col => ({ wch: col.width || 15 }));
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  XLSX.writeFile(wb, `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
 export function exportMultipleSheets(
   sheets: Array<{
     data: any[];
-    columns: ExportColumn[];
+    columns?: ExportColumn[];
     sheetName: string;
   }>,
   fileName: string
@@ -46,16 +64,20 @@ export function exportMultipleSheets(
   const wb = XLSX.utils.book_new();
 
   sheets.forEach(({ data, columns, sheetName }) => {
-    const exportData = data.map(row => {
-      const transformedRow: any = {};
-      columns.forEach(col => {
-        transformedRow[col.header] = row[col.key] || '';
+    let ws;
+    if (columns) {
+      const exportData = data.map(row => {
+        const transformedRow: any = {};
+        columns.forEach(col => {
+          transformedRow[col.header] = row[col.key] || '';
+        });
+        return transformedRow;
       });
-      return transformedRow;
-    });
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    ws['!cols'] = columns.map(col => ({ wch: col.width || 15 }));
+      ws = XLSX.utils.json_to_sheet(exportData);
+      ws['!cols'] = columns.map(col => ({ wch: col.width || 15 }));
+    } else {
+      ws = XLSX.utils.json_to_sheet(data);
+    }
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
   });
 
