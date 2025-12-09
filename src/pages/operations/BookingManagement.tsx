@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,93 +21,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, FileSpreadsheet, Filter, Calendar, X } from 'lucide-react';
-import { format } from 'date-fns';
-import * as XLSX from 'xlsx';
+import { Search, FileSpreadsheet, Filter, X } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { exportToExcel } from '@/lib/exportToExcel';
 
-// Mock bookings data
-const mockBookings = [
-  {
-    id: 'BK001',
-    customer: 'VN - Công ty TNHH ABC',
-    groupCode: 'GRP2024001',
-    route: 'HCM → Bình Dương → Hà Nội',
-    startDate: '2024-01-15',
-    endDate: '2024-01-20',
-    vehicles: [
-      { plate: '30A-123.45', driver: 'Trần Văn B', type: '7 chỗ' },
-      { plate: '30A-123.46', driver: 'Lê Văn C', type: '7 chỗ' }
-    ],
-    status: 'confirmed',
-    value: 15000000,
-    numAdults: 25,
-    numChildren: 5,
-    tourGuideName: 'Nguyễn Hướng Dẫn',
-    tourGuidePhone: '0909123456'
-  },
-  {
-    id: 'BK002',
-    customer: 'Lê Thị C',
-    route: 'Đà Nẵng → HCM',
-    startDate: '2024-01-16',
-    endDate: '2024-01-16',
-    vehicles: [
-      { plate: 'Chưa phân', driver: 'Chưa phân', type: '4 chỗ' }
-    ],
-    status: 'pending',
-    value: 8500000,
-    numAdults: 1,
-    numChildren: 0
-  },
-  {
-    id: 'BK003',
-    customer: 'QH - Công ty DEF',
-    groupCode: 'GRP2024002',
-    route: 'Hà Nội → Hải Phòng',
-    startDate: '2024-01-17',
-    endDate: '2024-01-19',
-    vehicles: [
-      { plate: '51B-678.90', driver: 'Hoàng Văn E', type: '16 chỗ' }
-    ],
-    status: 'in_progress',
-    value: 5200000,
-    numAdults: 15,
-    numChildren: 0,
-    tourGuideName: 'Trần Minh',
-    tourGuidePhone: '0908765432'
-  },
-  {
-    id: 'BK004',
-    customer: 'VJ - Công ty GHI',
-    groupCode: 'GRP2024003',
-    route: 'Cần Thơ → HCM',
-    startDate: '2024-01-14',
-    endDate: '2024-01-14',
-    vehicles: [
-      { plate: '92C-111.22', driver: 'Nguyễn Văn G', type: '7 chỗ' }
-    ],
-    status: 'completed',
-    value: 3200000,
-    numAdults: 10,
-    numChildren: 2,
-    tourGuideName: 'Lê Thanh',
-    tourGuidePhone: '0907654321'
-  }
-];
+interface Booking {
+  id: string;
+  booking_number: string;
+  pickup_location: string;
+  dropoff_location: string;
+  pickup_datetime: string;
+  passenger_count: number;
+  status: string;
+  total_price: number;
+  notes: string;
+  customers: { name: string; phone: string } | null;
+  vehicle_assignments: Array<{
+    vehicles: { license_plate: string; brand: string; model: string; seats: number } | null;
+    drivers: { 
+      profiles: { full_name: string } | null;
+    } | null;
+  }>;
+}
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   pending: { label: 'Chờ xử lý', color: 'bg-yellow-100 text-yellow-800' },
   confirmed: { label: 'Đã xác nhận', color: 'bg-blue-100 text-blue-800' },
+  assigned: { label: 'Đã phân xe', color: 'bg-purple-100 text-purple-800' },
   in_progress: { label: 'Đang thực hiện', color: 'bg-green-100 text-green-800' },
   completed: { label: 'Hoàn thành', color: 'bg-gray-100 text-gray-800' },
   cancelled: { label: 'Đã hủy', color: 'bg-red-100 text-red-800' }
 };
 
 export default function BookingManagement() {
+  const { toast } = useToast();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [customerFilter, setCustomerFilter] = useState('');
-  const [routeFilter, setRouteFilter] = useState('');
   const [driverFilter, setDriverFilter] = useState('');
   const [vehicleFilter, setVehicleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -114,35 +67,69 @@ export default function BookingManagement() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
 
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const fetchBookings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bookings')
+        .select(`
+          *,
+          customers!bookings_customer_id_fkey (name, phone),
+          vehicle_assignments (
+            vehicles!vehicle_assignments_vehicle_id_fkey (license_plate, brand, model, seats),
+            drivers!vehicle_assignments_driver_id_fkey (
+              profiles!drivers_profile_id_fkey (full_name)
+            )
+          )
+        `)
+        .order('pickup_datetime', { ascending: false });
+
+      if (error) throw error;
+      setBookings(data || []);
+    } catch (error: any) {
+      toast({
+        title: 'Lỗi',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Get unique values for filters
-  const uniqueCustomers = Array.from(new Set(mockBookings.map(b => b.customer)));
+  const uniqueCustomers = Array.from(new Set(bookings.map(b => b.customers?.name).filter(Boolean)));
   const uniqueDrivers = Array.from(
-    new Set(mockBookings.flatMap(b => b.vehicles.map(v => v.driver).filter(d => d !== 'Chưa phân')))
+    new Set(bookings.flatMap(b => 
+      b.vehicle_assignments?.map(va => va.drivers?.profiles?.full_name).filter(Boolean) || []
+    ))
   );
   const uniqueVehicles = Array.from(
-    new Set(mockBookings.flatMap(b => b.vehicles.map(v => v.plate).filter(p => p !== 'Chưa phân')))
+    new Set(bookings.flatMap(b => 
+      b.vehicle_assignments?.map(va => va.vehicles?.license_plate).filter(Boolean) || []
+    ))
   );
-  const uniqueRoutes = Array.from(new Set(mockBookings.map(b => b.route)));
 
-  const filteredBookings = mockBookings.filter(booking => {
+  const filteredBookings = bookings.filter(booking => {
     const matchesSearch = 
-      booking.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      booking.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (booking.groupCode && booking.groupCode.toLowerCase().includes(searchTerm.toLowerCase()));
+      booking.booking_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      booking.customers?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesCustomer = !customerFilter || booking.customer === customerFilter;
-    const matchesRoute = !routeFilter || booking.route === routeFilter;
+    const matchesCustomer = !customerFilter || booking.customers?.name === customerFilter;
     const matchesDriver = !driverFilter || 
-      booking.vehicles.some(v => v.driver === driverFilter);
+      booking.vehicle_assignments?.some(va => va.drivers?.profiles?.full_name === driverFilter);
     const matchesVehicle = !vehicleFilter || 
-      booking.vehicles.some(v => v.plate === vehicleFilter);
+      booking.vehicle_assignments?.some(va => va.vehicles?.license_plate === vehicleFilter);
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     const matchesStartDateFrom = !startDateFrom || 
-      new Date(booking.startDate) >= new Date(startDateFrom);
+      new Date(booking.pickup_datetime) >= new Date(startDateFrom);
     const matchesStartDateTo = !startDateTo || 
-      new Date(booking.startDate) <= new Date(startDateTo);
+      new Date(booking.pickup_datetime) <= new Date(startDateTo);
     
-    return matchesSearch && matchesCustomer && matchesRoute && matchesDriver && 
+    return matchesSearch && matchesCustomer && matchesDriver && 
            matchesVehicle && matchesStatus && matchesStartDateFrom && matchesStartDateTo;
   });
 
@@ -171,43 +158,29 @@ export default function BookingManagement() {
 
   const handleExportExcel = () => {
     const bookingsToExport = selectedBookings.length > 0
-      ? mockBookings.filter(b => selectedBookings.includes(b.id))
+      ? bookings.filter(b => selectedBookings.includes(b.id))
       : filteredBookings;
 
     const exportData = bookingsToExport.map(booking => ({
-      'Mã Booking': booking.id,
-      'Khách hàng': booking.customer,
-      'Mã đoàn': booking.groupCode || '-',
-      'Hành trình': booking.route,
-      'Ngày bắt đầu': booking.startDate,
-      'Ngày kết thúc': booking.endDate,
-      'Số khách': booking.numAdults,
-      'Em bé': booking.numChildren,
-      'Hướng dẫn viên': booking.tourGuideName || '-',
-      'SĐT HDV': booking.tourGuidePhone || '-',
-      'Xe': booking.vehicles.map(v => v.plate).join(', '),
-      'Lái xe': booking.vehicles.map(v => v.driver).join(', '),
-      'Dòng xe': booking.vehicles.map(v => v.type).join(', '),
-      'Trạng thái': statusConfig[booking.status as keyof typeof statusConfig].label,
-      'Giá trị': booking.value
+      'Mã Booking': booking.booking_number,
+      'Khách hàng': booking.customers?.name || '',
+      'SĐT': booking.customers?.phone || '',
+      'Điểm đón': booking.pickup_location,
+      'Điểm đến': booking.dropoff_location,
+      'Thời gian': new Date(booking.pickup_datetime).toLocaleString('vi-VN'),
+      'Số khách': booking.passenger_count || 0,
+      'Xe': booking.vehicle_assignments?.[0]?.vehicles?.license_plate || 'Chưa phân',
+      'Lái xe': booking.vehicle_assignments?.[0]?.drivers?.profiles?.full_name || 'Chưa phân',
+      'Trạng thái': statusConfig[booking.status]?.label || booking.status,
+      'Giá trị': booking.total_price || 0
     }));
 
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Bookings');
-
-    // Auto-size columns
-    const maxWidth = exportData.reduce((w, r) => Math.max(w, ...Object.values(r).map(v => String(v).length)), 10);
-    worksheet['!cols'] = Object.keys(exportData[0] || {}).map(() => ({ wch: maxWidth }));
-
-    const fileName = `Bookings_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.xlsx`;
-    XLSX.writeFile(workbook, fileName);
+    exportToExcel(exportData, 'Bookings_Operations');
   };
 
   const clearFilters = () => {
     setSearchTerm('');
     setCustomerFilter('');
-    setRouteFilter('');
     setDriverFilter('');
     setVehicleFilter('');
     setStatusFilter('all');
@@ -217,7 +190,6 @@ export default function BookingManagement() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">Quản lý Booking</h1>
@@ -243,12 +215,11 @@ export default function BookingManagement() {
         </div>
       </div>
 
-      {/* Summary Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-primary">{mockBookings.length}</div>
+              <div className="text-2xl font-bold text-primary">{bookings.length}</div>
               <div className="text-sm text-muted-foreground">Tổng booking</div>
             </div>
           </CardContent>
@@ -257,7 +228,7 @@ export default function BookingManagement() {
           <CardContent className="p-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-yellow-600">
-                {mockBookings.filter(b => b.status === 'pending').length}
+                {bookings.filter(b => b.status === 'pending').length}
               </div>
               <div className="text-sm text-muted-foreground">Chờ xử lý</div>
             </div>
@@ -267,7 +238,7 @@ export default function BookingManagement() {
           <CardContent className="p-4">
             <div className="text-center">
               <div className="text-2xl font-bold text-green-600">
-                {mockBookings.filter(b => b.status === 'in_progress').length}
+                {bookings.filter(b => b.status === 'in_progress').length}
               </div>
               <div className="text-sm text-muted-foreground">Đang thực hiện</div>
             </div>
@@ -285,7 +256,6 @@ export default function BookingManagement() {
         </Card>
       </div>
 
-      {/* Filters */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex gap-4 mb-4">
@@ -293,7 +263,7 @@ export default function BookingManagement() {
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Tìm kiếm theo mã booking, khách hàng, mã đoàn..."
+                  placeholder="Tìm kiếm theo mã booking, khách hàng..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -308,6 +278,7 @@ export default function BookingManagement() {
                 <SelectItem value="all">Tất cả</SelectItem>
                 <SelectItem value="pending">Chờ xử lý</SelectItem>
                 <SelectItem value="confirmed">Đã xác nhận</SelectItem>
+                <SelectItem value="assigned">Đã phân xe</SelectItem>
                 <SelectItem value="in_progress">Đang thực hiện</SelectItem>
                 <SelectItem value="completed">Hoàn thành</SelectItem>
                 <SelectItem value="cancelled">Đã hủy</SelectItem>
@@ -334,24 +305,8 @@ export default function BookingManagement() {
                     <SelectContent>
                       <SelectItem value="">Tất cả</SelectItem>
                       {uniqueCustomers.map(customer => (
-                        <SelectItem key={customer} value={customer}>
+                        <SelectItem key={customer} value={customer || ''}>
                           {customer}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs">Hành trình</Label>
-                  <Select value={routeFilter} onValueChange={setRouteFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Chọn hành trình" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Tất cả</SelectItem>
-                      {uniqueRoutes.map(route => (
-                        <SelectItem key={route} value={route}>
-                          {route}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -366,7 +321,7 @@ export default function BookingManagement() {
                     <SelectContent>
                       <SelectItem value="">Tất cả</SelectItem>
                       {uniqueDrivers.map(driver => (
-                        <SelectItem key={driver} value={driver}>
+                        <SelectItem key={driver} value={driver || ''}>
                           {driver}
                         </SelectItem>
                       ))}
@@ -382,7 +337,7 @@ export default function BookingManagement() {
                     <SelectContent>
                       <SelectItem value="">Tất cả</SelectItem>
                       {uniqueVehicles.map(vehicle => (
-                        <SelectItem key={vehicle} value={vehicle}>
+                        <SelectItem key={vehicle} value={vehicle || ''}>
                           {vehicle}
                         </SelectItem>
                       ))}
@@ -411,7 +366,6 @@ export default function BookingManagement() {
         </CardContent>
       </Card>
 
-      {/* Bookings Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -443,54 +397,67 @@ export default function BookingManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredBookings.map((booking) => (
-                <TableRow key={booking.id}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedBookings.includes(booking.id)}
-                      onCheckedChange={() => handleSelectBooking(booking.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{booking.id}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{booking.customer}</p>
-                      {booking.groupCode && (
-                        <p className="text-xs text-muted-foreground">{booking.groupCode}</p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">{booking.route}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <p>{booking.startDate}</p>
-                      <p className="text-muted-foreground">→ {booking.endDate}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {booking.vehicles.map((vehicle, idx) => (
-                        <div key={idx} className="text-sm">
-                          <Badge variant="secondary" className="mr-1">{vehicle.type}</Badge>
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {vehicle.plate} - {vehicle.driver}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={statusConfig[booking.status as keyof typeof statusConfig].color}>
-                      {statusConfig[booking.status as keyof typeof statusConfig].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {formatCurrency(booking.value)}
-                  </TableCell>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">Đang tải...</TableCell>
                 </TableRow>
-              ))}
+              ) : filteredBookings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center">Không có booking nào</TableCell>
+                </TableRow>
+              ) : (
+                filteredBookings.map((booking) => (
+                  <TableRow key={booking.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedBookings.includes(booking.id)}
+                        onCheckedChange={() => handleSelectBooking(booking.id)}
+                      />
+                    </TableCell>
+                    <TableCell className="font-medium">{booking.booking_number}</TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{booking.customers?.name}</p>
+                        <p className="text-xs text-muted-foreground">{booking.customers?.phone}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm">{booking.pickup_location}</p>
+                        <p className="text-sm text-muted-foreground">→ {booking.dropoff_location}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm">{new Date(booking.pickup_datetime).toLocaleDateString('vi-VN')}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(booking.pickup_datetime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {booking.vehicle_assignments?.[0] ? (
+                        <div>
+                          <p className="text-sm font-medium">{booking.vehicle_assignments[0].vehicles?.license_plate}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {booking.vehicle_assignments[0].drivers?.profiles?.full_name || 'Chưa phân'}
+                          </p>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Chưa phân</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={statusConfig[booking.status]?.color || ''}>
+                        {statusConfig[booking.status]?.label || booking.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(booking.total_price || 0)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
