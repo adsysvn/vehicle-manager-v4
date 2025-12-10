@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { 
   BarChart3, 
   Users, 
@@ -7,12 +8,15 @@ import {
   Calculator,
   UserCog,
   Shield,
-  Briefcase
+  Briefcase,
+  LogIn
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
 
   const modules = [
@@ -126,6 +130,29 @@ const Index = () => {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-primary to-primary-dark text-white py-16">
         <div className="container mx-auto px-6">
+          {/* Login button */}
+          <div className="flex justify-end mb-6">
+            {!loading && (
+              user ? (
+                <Button 
+                  variant="outline" 
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  onClick={() => navigate('/dashboard')}
+                >
+                  Vào Dashboard
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  onClick={() => navigate('/auth')}
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Đăng nhập
+                </Button>
+              )
+            )}
+          </div>
           <div className="flex items-center justify-center space-x-4 mb-6">
             <Briefcase className="w-16 h-16" />
           </div>

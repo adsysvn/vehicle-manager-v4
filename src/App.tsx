@@ -3,8 +3,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { Layout } from "./components/layout/Layout";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import BookingList from "./pages/sales/BookingList";
 import BookingCreate from "./pages/sales/BookingCreate";
@@ -82,110 +85,121 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Landing Page - No Layout */}
-          <Route path="/" element={<Index />} />
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
 
-          {/* App Routes - With Layout */}
-          <Route path="/dashboard" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-          </Route>
+            {/* Protected App Routes - With Layout */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }>
+              <Route index element={<Dashboard />} />
+            </Route>
 
-          <Route element={<Layout />}>
-            {/* Sales Routes */}
-            <Route path="sales/bookings" element={<BookingList />} />
-            <Route path="sales/bookings/create" element={<BookingCreate />} />
-            <Route path="sales/bookings/:id" element={<ViewBooking />} />
-            <Route path="sales/bookings/:id/edit" element={<EditBooking />} />
-            <Route path="sales/bookings/:id/print" element={<PrintBooking />} />
-            <Route path="sales/bookings/print" element={<PrintBooking />} />
-            <Route path="sales/routes" element={<RouteManagement />} />
-            <Route path="sales/contracts" element={<ContractManager />} />
-            <Route path="sales/contracts/create" element={<ContractCreate />} />
-            <Route path="sales/customer-care" element={<CustomerCare />} />
-            <Route path="sales/customers" element={<CustomerManagement />} />
-            <Route path="sales/service-manager" element={<ServiceManager />} />
-            <Route path="sales/towel-service" element={<TowelService />} />
-            <Route path="sales/water-service" element={<WaterService />} />
-            <Route path="sales/services" element={<OtherServices />} />
-            <Route path="sales/reports" element={<SalesReports />} />
+            <Route element={
+              <ProtectedRoute>
+                <Layout />
+              </ProtectedRoute>
+            }>
+              {/* Sales Routes */}
+              <Route path="sales/bookings" element={<BookingList />} />
+              <Route path="sales/bookings/create" element={<BookingCreate />} />
+              <Route path="sales/bookings/:id" element={<ViewBooking />} />
+              <Route path="sales/bookings/:id/edit" element={<EditBooking />} />
+              <Route path="sales/bookings/:id/print" element={<PrintBooking />} />
+              <Route path="sales/bookings/print" element={<PrintBooking />} />
+              <Route path="sales/routes" element={<RouteManagement />} />
+              <Route path="sales/contracts" element={<ContractManager />} />
+              <Route path="sales/contracts/create" element={<ContractCreate />} />
+              <Route path="sales/customer-care" element={<CustomerCare />} />
+              <Route path="sales/customers" element={<CustomerManagement />} />
+              <Route path="sales/service-manager" element={<ServiceManager />} />
+              <Route path="sales/towel-service" element={<TowelService />} />
+              <Route path="sales/water-service" element={<WaterService />} />
+              <Route path="sales/services" element={<OtherServices />} />
+              <Route path="sales/reports" element={<SalesReports />} />
 
-            {/* Operations Routes */}
-            <Route path="operations/vehicle-assignment" element={<VehicleAssignment />} />
-            <Route path="operations/booking-management" element={<BookingManagement />} />
-            <Route path="operations/travel-documents" element={<OperationsTravelDocuments />} />
-            <Route path="operations/multi-stop-booking" element={<MultiStopBooking />} />
-            <Route path="operations/gps-monitor" element={<GPSMonitor />} />
-            <Route path="operations/incidents" element={<IncidentManager />} />
-            <Route path="operations/ctv-manager" element={<CTVManager />} />
-            <Route path="operations/ctv-booking" element={<CTVBooking />} />
-            <Route path="operations/ctv-tracking" element={<CTVTracking />} />
-            <Route path="operations/alerts" element={<AlertsManager />} />
-            <Route path="operations/reports" element={<OperationsReports />} />
+              {/* Operations Routes */}
+              <Route path="operations/vehicle-assignment" element={<VehicleAssignment />} />
+              <Route path="operations/booking-management" element={<BookingManagement />} />
+              <Route path="operations/travel-documents" element={<OperationsTravelDocuments />} />
+              <Route path="operations/multi-stop-booking" element={<MultiStopBooking />} />
+              <Route path="operations/gps-monitor" element={<GPSMonitor />} />
+              <Route path="operations/incidents" element={<IncidentManager />} />
+              <Route path="operations/ctv-manager" element={<CTVManager />} />
+              <Route path="operations/ctv-booking" element={<CTVBooking />} />
+              <Route path="operations/ctv-tracking" element={<CTVTracking />} />
+              <Route path="operations/alerts" element={<AlertsManager />} />
+              <Route path="operations/reports" element={<OperationsReports />} />
 
-            {/* Transport Routes */}
-            <Route path="transport/vehicles" element={<VehicleList />} />
-            <Route path="transport/drivers" element={<DriverList />} />
-            <Route path="transport/driver-management" element={<DriverManagement />} />
-            <Route path="transport/pricing" element={<PricingPerKm />} />
-            <Route path="transport/maintenance" element={<MaintenanceSchedule />} />
-            <Route path="transport/oil-management" element={<OilManagement />} />
-            <Route path="transport/fuel" element={<FuelManagement />} />
-            <Route path="transport/registration" element={<VehicleRegistration />} />
-            <Route path="transport/insurance" element={<VehicleInsurance />} />
-            <Route path="transport/other-services" element={<TransportOtherServices />} />
-            <Route path="transport/reports" element={<TransportReports />} />
+              {/* Transport Routes */}
+              <Route path="transport/vehicles" element={<VehicleList />} />
+              <Route path="transport/drivers" element={<DriverList />} />
+              <Route path="transport/driver-management" element={<DriverManagement />} />
+              <Route path="transport/pricing" element={<PricingPerKm />} />
+              <Route path="transport/maintenance" element={<MaintenanceSchedule />} />
+              <Route path="transport/oil-management" element={<OilManagement />} />
+              <Route path="transport/fuel" element={<FuelManagement />} />
+              <Route path="transport/registration" element={<VehicleRegistration />} />
+              <Route path="transport/insurance" element={<VehicleInsurance />} />
+              <Route path="transport/other-services" element={<TransportOtherServices />} />
+              <Route path="transport/reports" element={<TransportReports />} />
 
-            {/* Accounting Routes */}
-            <Route path="accounting/debts" element={<DebtManagement />} />
-            <Route path="accounting/invoices" element={<InvoiceManager />} />
-            <Route path="accounting/expenses" element={<ExpenseManagement />} />
-            <Route path="accounting/invoice-sync" element={<InvoiceEmailSync />} />
-            <Route path="accounting/payroll" element={<PayrollManager />} />
-            <Route path="accounting/reports" element={<FinancialReports />} />
+              {/* Accounting Routes */}
+              <Route path="accounting/debts" element={<DebtManagement />} />
+              <Route path="accounting/invoices" element={<InvoiceManager />} />
+              <Route path="accounting/expenses" element={<ExpenseManagement />} />
+              <Route path="accounting/invoice-sync" element={<InvoiceEmailSync />} />
+              <Route path="accounting/payroll" element={<PayrollManager />} />
+              <Route path="accounting/reports" element={<FinancialReports />} />
 
-            {/* HRM Routes */}
-            <Route path="hrm/employees" element={<EmployeeList />} />
-            <Route path="hrm/employees/create" element={<EmployeeCreate />} />
-            <Route path="hrm/attendance" element={<Attendance />} />
-            <Route path="hrm/leave" element={<LeaveManagement />} />
-            <Route path="hrm/departments" element={<HrmDepartmentManagement />} />
-            <Route path="hrm/positions" element={<PositionManagement />} />
-            <Route path="hrm/task-assignment" element={<TaskAssignment />} />
-            <Route path="hrm/document-approval" element={<DocumentApproval />} />
-            <Route path="hrm/degrees" element={<Degrees />} />
-            <Route path="hrm/contracts" element={<Contracts />} />
-            <Route path="hrm/certificates" element={<Certificates />} />
+              {/* HRM Routes */}
+              <Route path="hrm/employees" element={<EmployeeList />} />
+              <Route path="hrm/employees/create" element={<EmployeeCreate />} />
+              <Route path="hrm/attendance" element={<Attendance />} />
+              <Route path="hrm/leave" element={<LeaveManagement />} />
+              <Route path="hrm/departments" element={<HrmDepartmentManagement />} />
+              <Route path="hrm/positions" element={<PositionManagement />} />
+              <Route path="hrm/task-assignment" element={<TaskAssignment />} />
+              <Route path="hrm/document-approval" element={<DocumentApproval />} />
+              <Route path="hrm/degrees" element={<Degrees />} />
+              <Route path="hrm/contracts" element={<Contracts />} />
+              <Route path="hrm/certificates" element={<Certificates />} />
 
-            {/* Security Routes */}
-            <Route path="security/roles" element={<RoleManagement />} />
-            <Route path="security/departments" element={<DepartmentManagement />} />
-            <Route path="security/permissions" element={<PermissionManagement />} />
-            <Route path="security/operations-permissions" element={<OperationsPermissions />} />
+              {/* Security Routes */}
+              <Route path="security/roles" element={<RoleManagement />} />
+              <Route path="security/departments" element={<DepartmentManagement />} />
+              <Route path="security/permissions" element={<PermissionManagement />} />
+              <Route path="security/operations-permissions" element={<OperationsPermissions />} />
 
-            {/* KPI Routes */}
-            <Route path="kpi/strategy" element={<CompanyStrategy />} />
-            <Route path="kpi/bsc" element={<BSCPerspectives />} />
-            <Route path="kpi/management" element={<KPIManagement />} />
-            <Route path="kpi/department" element={<DepartmentKPI />} />
-            <Route path="kpi/individual" element={<IndividualKPI />} />
-            <Route path="kpi/dashboard" element={<KPIDashboard />} />
+              {/* KPI Routes */}
+              <Route path="kpi/strategy" element={<CompanyStrategy />} />
+              <Route path="kpi/bsc" element={<BSCPerspectives />} />
+              <Route path="kpi/management" element={<KPIManagement />} />
+              <Route path="kpi/department" element={<DepartmentKPI />} />
+              <Route path="kpi/individual" element={<IndividualKPI />} />
+              <Route path="kpi/dashboard" element={<KPIDashboard />} />
 
-            {/* Request Routes */}
-            <Route path="requests/meeting-room" element={<MeetingRoomBooking />} />
-            <Route path="requests/business-trip" element={<BusinessTripManagement />} />
-            <Route path="requests/office-shopping" element={<OfficeShopping />} />
-          </Route>
+              {/* Request Routes */}
+              <Route path="requests/meeting-room" element={<MeetingRoomBooking />} />
+              <Route path="requests/business-trip" element={<BusinessTripManagement />} />
+              <Route path="requests/office-shopping" element={<OfficeShopping />} />
+            </Route>
 
-          {/* 404 Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+            {/* 404 Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
