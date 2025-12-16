@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,94 +11,137 @@ import {
   CheckCircle,
   Bell,
   Car,
-  User
+  User,
+  RefreshCw,
+  Download
 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { exportToExcel } from '@/lib/exportToExcel';
 
 interface Alert {
   id: string;
-  type: 'speed' | 'inspection' | 'maintenance';
-  severity: 'high' | 'medium' | 'low';
+  type: string;
+  severity: string;
   vehicle: string;
   driver?: string;
   message: string;
+  title: string;
   time: string;
-  status: 'active' | 'resolved';
+  status: string;
+  due_date?: string;
 }
 
-const mockAlerts: Alert[] = [
-  {
-    id: 'ALT001',
-    type: 'speed',
-    severity: 'high',
-    vehicle: '30A-123.45',
-    driver: 'Nguyễn Văn A',
-    message: 'Vượt quá tốc độ cho phép 95km/h (giới hạn 80km/h)',
-    time: '5 phút trước',
-    status: 'active'
-  },
-  {
-    id: 'ALT002',
-    type: 'inspection',
-    severity: 'medium',
-    vehicle: '51B-678.90',
-    message: 'Đăng kiểm hết hạn sau 7 ngày (15/04/2025)',
-    time: '1 giờ trước',
-    status: 'active'
-  },
-  {
-    id: 'ALT003',
-    type: 'maintenance',
-    severity: 'high',
-    vehicle: '92C-111.22',
-    driver: 'Lê Văn C',
-    message: 'Cần bảo dưỡng định kỳ - đã chạy 9,850km (hạn mức 10,000km)',
-    time: '2 giờ trước',
-    status: 'active'
-  },
-  {
-    id: 'ALT004',
-    type: 'speed',
-    severity: 'medium',
-    vehicle: '29D-456.78',
-    driver: 'Trần Văn B',
-    message: 'Vượt quá tốc độ cho phép 87km/h (giới hạn 80km/h)',
-    time: '3 giờ trước',
-    status: 'resolved'
-  },
-  {
-    id: 'ALT005',
-    type: 'inspection',
-    severity: 'low',
-    vehicle: '43E-789.01',
-    message: 'Đăng kiểm hết hạn sau 30 ngày (08/05/2025)',
-    time: '1 ngày trước',
-    status: 'active'
-  },
-  {
-    id: 'ALT006',
-    type: 'maintenance',
-    severity: 'medium',
-    vehicle: '88F-234.56',
-    message: 'Cần thay dầu động cơ - đã chạy 4,800km (hạn mức 5,000km)',
-    time: '1 ngày trước',
-    status: 'active'
-  }
-];
-
 export default function AlertsManager() {
-  const [alerts, setAlerts] = useState(mockAlerts);
+  const { toast } = useToast();
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleResolve = (id: string) => {
-    setAlerts(alerts.map(alert => 
-      alert.id === id ? { ...alert, status: 'resolved' } : alert
-    ));
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
+
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('vehicle_alerts')
+        .select(`
+          *,
+          vehicles!vehicle_alerts_vehicle_id_fkey (license_plate),
+          drivers!vehicle_alerts_driver_id_fkey (
+            profiles!drivers_profile_id_fkey (full_name)
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedAlerts: Alert[] = (data || []).map(a => ({
+        id: a.id,
+        type: a.alert_type,
+        severity: a.severity,
+        vehicle: a.vehicles?.license_plate || 'N/A',
+        driver: a.drivers?.profiles?.full_name,
+        message: a.message,
+        title: a.title,
+        time: formatRelativeTime(a.created_at),
+        status: a.status,
+        due_date: a.due_date
+      }));
+
+      setAlerts(formattedAlerts);
+    } catch (error: any) {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatRelativeTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    return `${diffDays} ngày trước`;
+  };
+
+  const handleResolve = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('vehicle_alerts')
+        .update({ 
+          status: 'resolved',
+          resolved_at: new Date().toISOString()
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({ title: 'Thành công', description: 'Đã xử lý cảnh báo' });
+      fetchAlerts();
+    } catch (error: any) {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const generateAlerts = async () => {
+    try {
+      const { error } = await supabase.rpc('create_vehicle_alerts');
+      if (error) throw error;
+      toast({ title: 'Thành công', description: 'Đã cập nhật cảnh báo' });
+      fetchAlerts();
+    } catch (error: any) {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleExport = () => {
+    const exportData = alerts.map(a => ({
+      'Mã': a.id.slice(0, 8),
+      'Tiêu đề': a.title,
+      'Loại': getTypeText(a.type),
+      'Mức độ': getSeverityText(a.severity),
+      'Xe': a.vehicle,
+      'Lái xe': a.driver || '',
+      'Nội dung': a.message,
+      'Hạn': a.due_date || '',
+      'Trạng thái': a.status === 'active' ? 'Đang hoạt động' : 'Đã xử lý'
+    }));
+    exportToExcel(exportData, 'canh-bao-he-thong');
   };
 
   const getAlertIcon = (type: string) => {
     switch (type) {
-      case 'speed': return <AlertTriangle className="w-5 h-5" />;
-      case 'inspection': return <FileText className="w-5 h-5" />;
       case 'maintenance': return <Wrench className="w-5 h-5" />;
+      case 'insurance': return <FileText className="w-5 h-5" />;
+      case 'registration': return <FileText className="w-5 h-5" />;
+      case 'oil_change': return <Wrench className="w-5 h-5" />;
       default: return <Bell className="w-5 h-5" />;
     }
   };
@@ -123,18 +166,20 @@ export default function AlertsManager() {
 
   const getTypeText = (type: string) => {
     switch (type) {
-      case 'speed': return 'Quá tốc độ';
-      case 'inspection': return 'Đăng kiểm';
-      case 'maintenance': return 'Bảo trì';
-      default: return '';
+      case 'maintenance': return 'Bảo dưỡng';
+      case 'insurance': return 'Bảo hiểm';
+      case 'registration': return 'Đăng kiểm';
+      case 'oil_change': return 'Thay dầu';
+      default: return type;
     }
   };
 
   const activeAlerts = alerts.filter(a => a.status === 'active');
   const resolvedAlerts = alerts.filter(a => a.status === 'resolved');
-  const speedAlerts = activeAlerts.filter(a => a.type === 'speed');
-  const inspectionAlerts = activeAlerts.filter(a => a.type === 'inspection');
   const maintenanceAlerts = activeAlerts.filter(a => a.type === 'maintenance');
+  const insuranceAlerts = activeAlerts.filter(a => a.type === 'insurance');
+  const registrationAlerts = activeAlerts.filter(a => a.type === 'registration');
+  const oilAlerts = activeAlerts.filter(a => a.type === 'oil_change');
 
   const AlertCard = ({ alert }: { alert: Alert }) => (
     <Card className="hover:shadow-md transition-smooth">
@@ -150,7 +195,7 @@ export default function AlertsManager() {
             </div>
             <div>
               <div className="flex items-center space-x-2 mb-1">
-                <span className="font-semibold text-foreground">{alert.id}</span>
+                <span className="font-semibold text-foreground">{alert.title}</span>
                 <Badge variant={getAlertColor(alert.severity) as any}>
                   {getSeverityText(alert.severity)}
                 </Badge>
@@ -184,6 +229,12 @@ export default function AlertsManager() {
                 <span>{alert.driver}</span>
               </span>
             )}
+            {alert.due_date && (
+              <span className="flex items-center space-x-1">
+                <Clock className="w-4 h-4" />
+                <span>Hạn: {alert.due_date}</span>
+              </span>
+            )}
           </div>
           <span className="flex items-center space-x-1">
             <Clock className="w-4 h-4" />
@@ -195,19 +246,31 @@ export default function AlertsManager() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent">
-          Hệ thống cảnh báo
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Theo dõi và xử lý các cảnh báo về tốc độ, đăng kiểm, bảo trì
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold gradient-primary bg-clip-text text-transparent">
+            Hệ thống cảnh báo
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Theo dõi và xử lý các cảnh báo về bảo dưỡng, bảo hiểm, đăng kiểm
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="w-4 h-4 mr-2" />
+            Xuất Excel
+          </Button>
+          <Button variant="outline" onClick={generateAlerts}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Cập nhật cảnh báo
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -223,10 +286,21 @@ export default function AlertsManager() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Quá tốc độ</p>
-                <p className="text-2xl font-bold text-destructive">{speedAlerts.length}</p>
+                <p className="text-sm text-muted-foreground">Bảo dưỡng</p>
+                <p className="text-2xl font-bold text-warning">{maintenanceAlerts.length}</p>
               </div>
-              <AlertTriangle className="w-8 h-8 text-destructive" />
+              <Wrench className="w-8 h-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Bảo hiểm</p>
+                <p className="text-2xl font-bold text-destructive">{insuranceAlerts.length}</p>
+              </div>
+              <FileText className="w-8 h-8 text-destructive" />
             </div>
           </CardContent>
         </Card>
@@ -235,9 +309,9 @@ export default function AlertsManager() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Đăng kiểm</p>
-                <p className="text-2xl font-bold text-warning">{inspectionAlerts.length}</p>
+                <p className="text-2xl font-bold text-orange-500">{registrationAlerts.length}</p>
               </div>
-              <FileText className="w-8 h-8 text-warning" />
+              <FileText className="w-8 h-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>
@@ -245,10 +319,10 @@ export default function AlertsManager() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Bảo trì</p>
-                <p className="text-2xl font-bold text-warning">{maintenanceAlerts.length}</p>
+                <p className="text-sm text-muted-foreground">Thay dầu</p>
+                <p className="text-2xl font-bold text-blue-500">{oilAlerts.length}</p>
               </div>
-              <Wrench className="w-8 h-8 text-warning" />
+              <Wrench className="w-8 h-8 text-blue-500" />
             </div>
           </CardContent>
         </Card>
@@ -260,14 +334,17 @@ export default function AlertsManager() {
           <TabsTrigger value="all">
             Tất cả ({activeAlerts.length})
           </TabsTrigger>
-          <TabsTrigger value="speed">
-            Quá tốc độ ({speedAlerts.length})
-          </TabsTrigger>
-          <TabsTrigger value="inspection">
-            Đăng kiểm ({inspectionAlerts.length})
-          </TabsTrigger>
           <TabsTrigger value="maintenance">
-            Bảo trì ({maintenanceAlerts.length})
+            Bảo dưỡng ({maintenanceAlerts.length})
+          </TabsTrigger>
+          <TabsTrigger value="insurance">
+            Bảo hiểm ({insuranceAlerts.length})
+          </TabsTrigger>
+          <TabsTrigger value="registration">
+            Đăng kiểm ({registrationAlerts.length})
+          </TabsTrigger>
+          <TabsTrigger value="oil">
+            Thay dầu ({oilAlerts.length})
           </TabsTrigger>
           <TabsTrigger value="resolved">
             Đã xử lý ({resolvedAlerts.length})
@@ -275,33 +352,89 @@ export default function AlertsManager() {
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          {activeAlerts.map(alert => (
-            <AlertCard key={alert.id} alert={alert} />
-          ))}
-        </TabsContent>
-
-        <TabsContent value="speed" className="space-y-4">
-          {speedAlerts.map(alert => (
-            <AlertCard key={alert.id} alert={alert} />
-          ))}
-        </TabsContent>
-
-        <TabsContent value="inspection" className="space-y-4">
-          {inspectionAlerts.map(alert => (
-            <AlertCard key={alert.id} alert={alert} />
-          ))}
+          {loading ? (
+            <div className="text-center py-8">Đang tải...</div>
+          ) : activeAlerts.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Không có cảnh báo nào
+              </CardContent>
+            </Card>
+          ) : (
+            activeAlerts.map(alert => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))
+          )}
         </TabsContent>
 
         <TabsContent value="maintenance" className="space-y-4">
-          {maintenanceAlerts.map(alert => (
-            <AlertCard key={alert.id} alert={alert} />
-          ))}
+          {maintenanceAlerts.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Không có cảnh báo bảo dưỡng
+              </CardContent>
+            </Card>
+          ) : (
+            maintenanceAlerts.map(alert => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="insurance" className="space-y-4">
+          {insuranceAlerts.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Không có cảnh báo bảo hiểm
+              </CardContent>
+            </Card>
+          ) : (
+            insuranceAlerts.map(alert => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="registration" className="space-y-4">
+          {registrationAlerts.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Không có cảnh báo đăng kiểm
+              </CardContent>
+            </Card>
+          ) : (
+            registrationAlerts.map(alert => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))
+          )}
+        </TabsContent>
+
+        <TabsContent value="oil" className="space-y-4">
+          {oilAlerts.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Không có cảnh báo thay dầu
+              </CardContent>
+            </Card>
+          ) : (
+            oilAlerts.map(alert => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))
+          )}
         </TabsContent>
 
         <TabsContent value="resolved" className="space-y-4">
-          {resolvedAlerts.map(alert => (
-            <AlertCard key={alert.id} alert={alert} />
-          ))}
+          {resolvedAlerts.length === 0 ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                Không có cảnh báo đã xử lý
+              </CardContent>
+            </Card>
+          ) : (
+            resolvedAlerts.map(alert => (
+              <AlertCard key={alert.id} alert={alert} />
+            ))
+          )}
         </TabsContent>
       </Tabs>
     </div>
