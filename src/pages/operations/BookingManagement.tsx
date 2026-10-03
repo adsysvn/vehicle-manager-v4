@@ -516,11 +516,11 @@ export default function BookingManagement() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">Đang tải...</TableCell>
+                  <TableCell colSpan={10} className="text-center">Đang tải...</TableCell>
                 </TableRow>
               ) : filteredBookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">Không có booking nào</TableCell>
+                  <TableCell colSpan={10} className="text-center">Không có booking nào</TableCell>
                 </TableRow>
               ) : (
                 filteredBookings.map((booking) => (
@@ -553,11 +553,21 @@ export default function BookingManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <div>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                          {booking.vehicle_type || `${booking.passenger_count || 0} chỗ`}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {booking.passenger_count || 0} khách
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       {booking.vehicle_assignments?.[0] ? (
                         <div>
                           <p className="text-sm font-medium">{booking.vehicle_assignments[0].vehicles?.license_plate}</p>
                           <p className="text-xs text-muted-foreground">
-                            {booking.vehicle_assignments[0].drivers?.profiles?.full_name || 'Chưa phân'}
+                            {booking.vehicle_assignments[0].vehicles?.seats} chỗ - {booking.vehicle_assignments[0].drivers?.profiles?.full_name || 'Chưa phân'}
                           </p>
                         </div>
                       ) : (
@@ -571,6 +581,14 @@ export default function BookingManagement() {
                     </TableCell>
                     <TableCell className="font-medium">
                       {formatCurrency(booking.total_price || 0)}
+                    </TableCell>
+                    <TableCell>
+                      {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                        <Button size="sm" onClick={() => openAssignDialog(booking)}>
+                          <Truck className="w-3.5 h-3.5 mr-1" />
+                          Phân xe
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
