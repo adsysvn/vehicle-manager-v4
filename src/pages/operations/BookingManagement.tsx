@@ -58,6 +58,7 @@ interface Booking {
   total_price: number;
   notes: string;
   vehicle_type: string | null;
+  estimated_duration: number | null;
   customers: { name: string; phone: string } | null;
   vehicle_assignments: Array<{
     vehicles: { license_plate: string; brand: string; model: string; seats: number } | null;
@@ -597,6 +598,81 @@ export default function BookingManagement() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Phân xe cho booking {assigningBooking?.booking_number}</DialogTitle>
+          </DialogHeader>
+          {assigningBooking && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg space-y-1">
+                <p className="text-sm"><span className="font-medium">Khách hàng:</span> {assigningBooking.customers?.name}</p>
+                <p className="text-sm"><span className="font-medium">Hành trình:</span> {assigningBooking.pickup_location} → {assigningBooking.dropoff_location}</p>
+                <p className="text-sm"><span className="font-medium">Thời gian:</span> {new Date(assigningBooking.pickup_datetime).toLocaleString('vi-VN')}</p>
+                <p className="text-sm">
+                  <span className="font-medium">Yêu cầu xe:</span>{' '}
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                    {assigningBooking.vehicle_type || `${requiredSeats} chỗ`}
+                  </Badge>{' '}
+                  <span className="text-muted-foreground">({assigningBooking.passenger_count || 0} khách)</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Xe khả dụng (đúng loại {requiredSeats} chỗ trở lên, rảnh thời gian này)</Label>
+                <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn xe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suitableVehicles.length === 0 ? (
+                      <SelectItem value="_none" disabled>Không có xe phù hợp</SelectItem>
+                    ) : (
+                      suitableVehicles.map(v => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.license_plate} - {v.brand} {v.model} ({v.seats} chỗ)
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {suitableVehicles.length === 0 && (
+                  <p className="text-xs text-destructive">
+                    Hết xe phù hợp! Cần gửi yêu cầu cho xe cộng tác viên.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Lái xe khả dụng</Label>
+                <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn lái xe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDrivers.length === 0 ? (
+                      <SelectItem value="_none" disabled>Không có lái xe rảnh</SelectItem>
+                    ) : (
+                      availableDrivers.map(d => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.profiles?.full_name || 'Lái xe'}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Hủy</Button>
+            <Button onClick={handleAssign} disabled={assigning || !selectedVehicleId || !selectedDriverId}>
+              {assigning ? 'Đang phân...' : 'Xác nhận phân xe'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
