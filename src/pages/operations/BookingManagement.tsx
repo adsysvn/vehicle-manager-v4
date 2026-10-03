@@ -506,9 +506,11 @@ export default function BookingManagement() {
                 <TableHead>Khách hàng</TableHead>
                 <TableHead>Hành trình</TableHead>
                 <TableHead>Thời gian</TableHead>
+                <TableHead>Loại xe yêu cầu</TableHead>
                 <TableHead>Xe & Lái xe</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Giá trị</TableHead>
+                <TableHead>Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
