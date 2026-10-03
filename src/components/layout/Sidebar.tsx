@@ -70,6 +70,8 @@ const menuItems = [
     submenu: [
       { title: 'Phân xe & lái xe', href: '/operations/vehicle-assignment', icon: Car },
       { title: 'Quản lý đoàn (booking)', href: '/operations/booking-management', icon: FileText },
+      { title: 'Trợ lý AI phân xe', href: '/operations/ai-dispatch', icon: Car },
+      { title: 'Lịch xe', href: '/operations/vehicle-calendar', icon: FileText },
       { title: 'Giấy đi đường', href: '/operations/travel-documents', icon: FileText },
       // { title: 'Hành trình đa điểm', href: '/operations/multi-stop-booking', icon: MapPin },
       { title: 'Giám sát GPS', href: '/operations/gps-monitor', icon: MapPin },
