@@ -21,9 +21,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, FileSpreadsheet, Filter, X } from 'lucide-react';
+import { Search, FileSpreadsheet, Filter, X, Truck } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { exportToExcel } from '@/lib/exportToExcel';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+interface Vehicle {
+  id: string;
+  license_plate: string;
+  brand: string;
+  model: string;
+  seats: number;
+  status: string;
+}
+
+interface Driver {
+  id: string;
+  status: string;
+  profiles: { full_name: string } | null;
+}
 
 interface Booking {
   id: string;
@@ -35,6 +57,8 @@ interface Booking {
   status: string;
   total_price: number;
   notes: string;
+  vehicle_type: string | null;
+  estimated_duration: number | null;
   customers: { name: string; phone: string } | null;
   vehicle_assignments: Array<{
     vehicles: { license_plate: string; brand: string; model: string; seats: number } | null;
@@ -66,6 +90,15 @@ export default function BookingManagement() {
   const [startDateTo, setStartDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assigningBooking, setAssigningBooking] = useState<Booking | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [busyVehicleIds, setBusyVehicleIds] = useState<string[]>([]);
+  const [busyDriverIds, setBusyDriverIds] = useState<string[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -97,6 +130,89 @@ export default function BookingManagement() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Parse required seats from vehicle_type (e.g. "7 chỗ") or fallback to passenger_count
+  const getRequiredSeats = (booking: Booking): number => {
+    const match = booking.vehicle_type?.match(/(\d+)/);
+    if (match) return parseInt(match[1], 10);
+    return booking.passenger_count || 0;
+  };
+
+  const openAssignDialog = async (booking: Booking) => {
+    setAssigningBooking(booking);
+    setSelectedVehicleId('');
+    setSelectedDriverId('');
+    setAssignDialogOpen(true);
+
+    try {
+      const [{ data: vehicleData }, { data: driverData }, { data: assignments }] = await Promise.all([
+        supabase.from('vehicles').select('id, license_plate, brand, model, seats, status').neq('status', 'inactive'),
+        supabase.from('drivers').select('id, status, profiles!drivers_profile_id_fkey(full_name)').neq('status', 'off_duty'),
+        supabase.from('vehicle_assignments').select('vehicle_id, driver_id, bookings!vehicle_assignments_booking_id_fkey(pickup_datetime, estimated_duration, status)')
+      ]);
+
+      setVehicles(vehicleData || []);
+      setDrivers((driverData as any) || []);
+
+      // Find vehicles/drivers busy at the booking's pickup time (overlapping assignments)
+      const pickupTime = new Date(booking.pickup_datetime).getTime();
+      const durationMs = (booking.estimated_duration || 120) * 60000;
+      const busyV: string[] = [];
+      const busyD: string[] = [];
+      (assignments || []).forEach((a: any) => {
+        const b = a.bookings;
+        if (!b || b.status === 'cancelled' || b.status === 'completed') return;
+        const start = new Date(b.pickup_datetime).getTime();
+        const end = start + (b.estimated_duration || 120) * 60000;
+        if (pickupTime < end && pickupTime + durationMs > start) {
+          if (a.vehicle_id) busyV.push(a.vehicle_id);
+          if (a.driver_id) busyD.push(a.driver_id);
+        }
+      });
+      setBusyVehicleIds(busyV);
+      setBusyDriverIds(busyD);
+    } catch (error: any) {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  // Filter vehicles: correct type (seats >= required) and not busy
+  const requiredSeats = assigningBooking ? getRequiredSeats(assigningBooking) : 0;
+  const suitableVehicles = vehicles.filter(v =>
+    v.seats >= requiredSeats && !busyVehicleIds.includes(v.id)
+  );
+  const availableDrivers = drivers.filter(d => !busyDriverIds.includes(d.id));
+
+  const handleAssign = async () => {
+    if (!assigningBooking || !selectedVehicleId || !selectedDriverId) {
+      toast({ title: 'Thiếu thông tin', description: 'Vui lòng chọn xe và lái xe', variant: 'destructive' });
+      return;
+    }
+    setAssigning(true);
+    try {
+      const { error: assignError } = await supabase.from('vehicle_assignments').insert({
+        booking_id: assigningBooking.id,
+        vehicle_id: selectedVehicleId,
+        driver_id: selectedDriverId,
+        start_time: assigningBooking.pickup_datetime,
+      });
+      if (assignError) throw assignError;
+
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({ status: 'assigned' })
+        .eq('id', assigningBooking.id);
+      if (bookingError) throw bookingError;
+
+      toast({ title: 'Thành công', description: 'Đã phân xe cho booking' });
+      setAssignDialogOpen(false);
+      fetchBookings();
+    } catch (error: any) {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -391,19 +507,21 @@ export default function BookingManagement() {
                 <TableHead>Khách hàng</TableHead>
                 <TableHead>Hành trình</TableHead>
                 <TableHead>Thời gian</TableHead>
+                <TableHead>Loại xe yêu cầu</TableHead>
                 <TableHead>Xe & Lái xe</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Giá trị</TableHead>
+                <TableHead>Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">Đang tải...</TableCell>
+                  <TableCell colSpan={10} className="text-center">Đang tải...</TableCell>
                 </TableRow>
               ) : filteredBookings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center">Không có booking nào</TableCell>
+                  <TableCell colSpan={10} className="text-center">Không có booking nào</TableCell>
                 </TableRow>
               ) : (
                 filteredBookings.map((booking) => (
@@ -436,11 +554,21 @@ export default function BookingManagement() {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <div>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                          {booking.vehicle_type || `${booking.passenger_count || 0} chỗ`}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {booking.passenger_count || 0} khách
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       {booking.vehicle_assignments?.[0] ? (
                         <div>
                           <p className="text-sm font-medium">{booking.vehicle_assignments[0].vehicles?.license_plate}</p>
                           <p className="text-xs text-muted-foreground">
-                            {booking.vehicle_assignments[0].drivers?.profiles?.full_name || 'Chưa phân'}
+                            {booking.vehicle_assignments[0].vehicles?.seats} chỗ - {booking.vehicle_assignments[0].drivers?.profiles?.full_name || 'Chưa phân'}
                           </p>
                         </div>
                       ) : (
@@ -455,6 +583,14 @@ export default function BookingManagement() {
                     <TableCell className="font-medium">
                       {formatCurrency(booking.total_price || 0)}
                     </TableCell>
+                    <TableCell>
+                      {(booking.status === 'pending' || booking.status === 'confirmed') && (
+                        <Button size="sm" onClick={() => openAssignDialog(booking)}>
+                          <Truck className="w-3.5 h-3.5 mr-1" />
+                          Phân xe
+                        </Button>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -462,6 +598,81 @@ export default function BookingManagement() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Phân xe cho booking {assigningBooking?.booking_number}</DialogTitle>
+          </DialogHeader>
+          {assigningBooking && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg space-y-1">
+                <p className="text-sm"><span className="font-medium">Khách hàng:</span> {assigningBooking.customers?.name}</p>
+                <p className="text-sm"><span className="font-medium">Hành trình:</span> {assigningBooking.pickup_location} → {assigningBooking.dropoff_location}</p>
+                <p className="text-sm"><span className="font-medium">Thời gian:</span> {new Date(assigningBooking.pickup_datetime).toLocaleString('vi-VN')}</p>
+                <p className="text-sm">
+                  <span className="font-medium">Yêu cầu xe:</span>{' '}
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                    {assigningBooking.vehicle_type || `${requiredSeats} chỗ`}
+                  </Badge>{' '}
+                  <span className="text-muted-foreground">({assigningBooking.passenger_count || 0} khách)</span>
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Xe khả dụng (đúng loại {requiredSeats} chỗ trở lên, rảnh thời gian này)</Label>
+                <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn xe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {suitableVehicles.length === 0 ? (
+                      <SelectItem value="_none" disabled>Không có xe phù hợp</SelectItem>
+                    ) : (
+                      suitableVehicles.map(v => (
+                        <SelectItem key={v.id} value={v.id}>
+                          {v.license_plate} - {v.brand} {v.model} ({v.seats} chỗ)
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                {suitableVehicles.length === 0 && (
+                  <p className="text-xs text-destructive">
+                    Hết xe phù hợp! Cần gửi yêu cầu cho xe cộng tác viên.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Lái xe khả dụng</Label>
+                <Select value={selectedDriverId} onValueChange={setSelectedDriverId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn lái xe" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDrivers.length === 0 ? (
+                      <SelectItem value="_none" disabled>Không có lái xe rảnh</SelectItem>
+                    ) : (
+                      availableDrivers.map(d => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.profiles?.full_name || 'Lái xe'}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignDialogOpen(false)}>Hủy</Button>
+            <Button onClick={handleAssign} disabled={assigning || !selectedVehicleId || !selectedDriverId}>
+              {assigning ? 'Đang phân...' : 'Xác nhận phân xe'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
