@@ -166,6 +166,7 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"] | null
           total_price: number | null
           updated_at: string | null
+          vehicle_type: string | null
         }
         Insert: {
           base_price?: number | null
@@ -187,6 +188,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"] | null
           total_price?: number | null
           updated_at?: string | null
+          vehicle_type?: string | null
         }
         Update: {
           base_price?: number | null
@@ -208,6 +210,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"] | null
           total_price?: number | null
           updated_at?: string | null
+          vehicle_type?: string | null
         }
         Relationships: [
           {
