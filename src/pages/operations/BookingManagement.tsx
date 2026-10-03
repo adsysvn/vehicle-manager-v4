@@ -89,6 +89,15 @@ export default function BookingManagement() {
   const [startDateTo, setStartDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBookings, setSelectedBookings] = useState<string[]>([]);
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [assigningBooking, setAssigningBooking] = useState<Booking | null>(null);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [busyVehicleIds, setBusyVehicleIds] = useState<string[]>([]);
+  const [busyDriverIds, setBusyDriverIds] = useState<string[]>([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
     fetchBookings();
