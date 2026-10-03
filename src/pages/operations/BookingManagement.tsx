@@ -21,9 +21,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, FileSpreadsheet, Filter, X } from 'lucide-react';
+import { Search, FileSpreadsheet, Filter, X, Truck } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { exportToExcel } from '@/lib/exportToExcel';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+interface Vehicle {
+  id: string;
+  license_plate: string;
+  brand: string;
+  model: string;
+  seats: number;
+  status: string;
+}
+
+interface Driver {
+  id: string;
+  status: string;
+  profiles: { full_name: string } | null;
+}
 
 interface Booking {
   id: string;
@@ -35,6 +57,7 @@ interface Booking {
   status: string;
   total_price: number;
   notes: string;
+  vehicle_type: string | null;
   customers: { name: string; phone: string } | null;
   vehicle_assignments: Array<{
     vehicles: { license_plate: string; brand: string; model: string; seats: number } | null;
