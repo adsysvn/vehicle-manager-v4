@@ -132,6 +132,89 @@ export default function BookingManagement() {
     }
   };
 
+  // Parse required seats from vehicle_type (e.g. "7 chỗ") or fallback to passenger_count
+  const getRequiredSeats = (booking: Booking): number => {
+    const match = booking.vehicle_type?.match(/(\d+)/);
+    if (match) return parseInt(match[1], 10);
+    return booking.passenger_count || 0;
+  };
+
+  const openAssignDialog = async (booking: Booking) => {
+    setAssigningBooking(booking);
+    setSelectedVehicleId('');
+    setSelectedDriverId('');
+    setAssignDialogOpen(true);
+
+    try {
+      const [{ data: vehicleData }, { data: driverData }, { data: assignments }] = await Promise.all([
+        supabase.from('vehicles').select('id, license_plate, brand, model, seats, status').neq('status', 'inactive'),
+        supabase.from('drivers').select('id, status, profiles!drivers_profile_id_fkey(full_name)').neq('status', 'off_duty'),
+        supabase.from('vehicle_assignments').select('vehicle_id, driver_id, bookings!vehicle_assignments_booking_id_fkey(pickup_datetime, estimated_duration, status)')
+      ]);
+
+      setVehicles(vehicleData || []);
+      setDrivers((driverData as any) || []);
+
+      // Find vehicles/drivers busy at the booking's pickup time (overlapping assignments)
+      const pickupTime = new Date(booking.pickup_datetime).getTime();
+      const durationMs = (booking.estimated_duration || 120) * 60000;
+      const busyV: string[] = [];
+      const busyD: string[] = [];
+      (assignments || []).forEach((a: any) => {
+        const b = a.bookings;
+        if (!b || b.status === 'cancelled' || b.status === 'completed') return;
+        const start = new Date(b.pickup_datetime).getTime();
+        const end = start + (b.estimated_duration || 120) * 60000;
+        if (pickupTime < end && pickupTime + durationMs > start) {
+          if (a.vehicle_id) busyV.push(a.vehicle_id);
+          if (a.driver_id) busyD.push(a.driver_id);
+        }
+      });
+      setBusyVehicleIds(busyV);
+      setBusyDriverIds(busyD);
+    } catch (error: any) {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  // Filter vehicles: correct type (seats >= required) and not busy
+  const requiredSeats = assigningBooking ? getRequiredSeats(assigningBooking) : 0;
+  const suitableVehicles = vehicles.filter(v =>
+    v.seats >= requiredSeats && !busyVehicleIds.includes(v.id)
+  );
+  const availableDrivers = drivers.filter(d => !busyDriverIds.includes(d.id));
+
+  const handleAssign = async () => {
+    if (!assigningBooking || !selectedVehicleId || !selectedDriverId) {
+      toast({ title: 'Thiếu thông tin', description: 'Vui lòng chọn xe và lái xe', variant: 'destructive' });
+      return;
+    }
+    setAssigning(true);
+    try {
+      const { error: assignError } = await supabase.from('vehicle_assignments').insert({
+        booking_id: assigningBooking.id,
+        vehicle_id: selectedVehicleId,
+        driver_id: selectedDriverId,
+        start_time: assigningBooking.pickup_datetime,
+      });
+      if (assignError) throw assignError;
+
+      const { error: bookingError } = await supabase
+        .from('bookings')
+        .update({ status: 'assigned' })
+        .eq('id', assigningBooking.id);
+      if (bookingError) throw bookingError;
+
+      toast({ title: 'Thành công', description: 'Đã phân xe cho booking' });
+      setAssignDialogOpen(false);
+      fetchBookings();
+    } catch (error: any) {
+      toast({ title: 'Lỗi', description: error.message, variant: 'destructive' });
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   // Get unique values for filters
   const uniqueCustomers = Array.from(new Set(bookings.map(b => b.customers?.name).filter(Boolean)));
   const uniqueDrivers = Array.from(
